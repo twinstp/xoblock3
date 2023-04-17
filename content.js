@@ -27,21 +27,26 @@
     const blob = new Blob([combinedScript], { type: 'text/javascript' });
     const blobURL = URL.createObjectURL(blob);
 
-    // Create a Web Worker using the Blob URL
-    const filterWorker = new Worker(blobURL);
+// Create a Web Worker using the Blob URL
+const filterWorker = new Worker(blobURL);
 
-    // Send data to the worker, including postData and filteredSubstrings
-    filterWorker.postMessage({ postData, config, filteredSubstrings });
+// Send data to the worker, including postData and filteredSubstrings (converted to array)
+filterWorker.postMessage({
+  postData,
+  config,
+  filteredSubstrings: [...filteredSubstrings] // Convert the set to an array
+});
 
-    // Receive filtered data from the worker
-    filterWorker.onmessage = (event) => {
-      const { filteredIds } = event.data;
-      filteredIds.forEach((id) => {
-        const table = document.getElementById(id);
-        table.style.visibility = 'hidden';
-        table.style.display = 'none';
-      });
-    };
+// Receive filtered data from the worker
+filterWorker.onmessage = (event) => {
+  const { filteredIds } = event.data;
+  filteredIds.forEach((id) => {
+    const table = document.getElementById(id);
+    table.style.visibility = 'hidden';
+    table.style.display = 'none';
+  });
+};
+
   }
 
   // Invoke the filterSpamPosts function to start filtering
