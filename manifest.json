@@ -2,6 +2,14 @@
   "manifest_version": 3,
   "name": "Filter XOXO_TwinstpVer",
   "description": "A Chrome extension that filters xoxo posts.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
   "version": "1.0",
   "action": {
     "default_popup": "options.html"
@@ -25,7 +33,6 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["crypto-js.min.js"],
       "matches": ["<all_urls>"]
     }
   ]
