@@ -20,10 +20,13 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["crypto-js.min.js", "content.js"]
     }
   ],
-  "permissions": [
-    "storage"
+  "web_accessible_resources": [
+    {
+      "resources": ["crypto-js.min.js"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }
