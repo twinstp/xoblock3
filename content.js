@@ -1,16 +1,28 @@
-// content.js
-(async function() {
+(async function () {
   'use strict';
 
   // Load the crypto-js library from the extension's local directory
   const cryptoJsScript = document.createElement('script');
   cryptoJsScript.src = chrome.runtime.getURL('crypto-js.min.js');
+
+  // Log when the script has loaded successfully
+  cryptoJsScript.onload = () => {
+    console.log('crypto-js script loaded successfully');
+  };
+
+  // Log and handle errors if the script fails to load
+  cryptoJsScript.onerror = (error) => {
+    console.error('Failed to load crypto-js script:', error);
+  };
+
   document.head.appendChild(cryptoJsScript);
-  
-  await new Promise(resolve => cryptoJsScript.onload = resolve);
+
+  // Wait for the script to load before proceeding
+  await new Promise((resolve) => (cryptoJsScript.onload = resolve));
 
   // Load the configuration from config.json
   const config = await fetch(chrome.runtime.getURL('config.json')).then((response) => response.json());
+  console.log('Loaded config:', config);
 
   // Convert FILTERED_SUBSTRINGS and USER_FILTERED_SUBSTRINGS to Sets for faster lookup
   config.FILTERED_SUBSTRINGS = new Set(config.FILTERED_SUBSTRINGS);
@@ -20,6 +32,9 @@
   function tokenize(message) {
     return message.split(/\s+/);
   }
+
+  // Test for tokenize function
+  console.log('Tokenize test:', JSON.stringify(tokenize('Hello World')) === JSON.stringify(['Hello', 'World']));
 
   // Utility function to compute SimHash of a message
   function computeSimHash(message) {
@@ -54,6 +69,9 @@
     return x.toString(2).split('').filter((bit) => bit === '1').length;
   }
 
+  // Test for hammingDistance function
+  console.log('Hamming distance test:', hammingDistance(BigInt('1001'), BigInt('1100')) === 2);
+
   // Function to check if a message is similar to any in the cache
   function isSimilarToCachedMessages(hash, messageCache) {
     return Array.from(messageCache.keys()).some(
@@ -74,6 +92,12 @@
     }
     return input;
   }
+
+  // Test for extractText function
+  console.log(
+    'Extract text test:',
+    extractText('(http://www.autoadmit.com/thread.php?thread_id=12345&forum_id=2#123) Some text') === 'Some text'
+  );
 
   // Function to filter out spam posts from the current page view
   async function filterSpamPosts() {
@@ -103,11 +127,16 @@
       }
       const joinedString = bodyStrings.join('');
       // Check if the post content matches any predefined or user-defined substrings
-      const filteredSubstrings = Array.from(new Set([...config.FILTERED_SUBSTRINGS, ...config.USER_FILTERED_SUBSTRINGS]));
-      const isSpamBySubstring = filteredSubstrings.some((substring) => joinedString.includes(substring));
+      const filteredSubstrings = Array.from(
+        new Set([...config.FILTERED_SUBSTRINGS, ...config.USER_FILTERED_SUBSTRINGS])
+      );
+      const isSpamBySubstring = filteredSubstrings.some((substring) =>
+        joinedString.includes(substring)
+      );
       const simHash = computeSimHash(joinedString);
       const isSpamBySimHash = isSimilarToCachedMessages(simHash, messageCache);
       if (isSpamBySubstring || isSpamBySimHash) {
+        console.log('Hiding spam post:', joinedString);
         table.style.visibility = 'hidden';
         table.style.display = 'none';
         continue;
