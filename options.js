@@ -1,4 +1,3 @@
-// options.js
 document.addEventListener('DOMContentLoaded', () => {
     // Load the current configuration from chrome.storage.local and display it in the form fields
     chrome.storage.local.get('config', ({ config }) => {

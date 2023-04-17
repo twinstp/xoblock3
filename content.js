@@ -18,9 +18,15 @@
   }
 
   try {
+    // Get the URL of the config.json file within the extension's directory
+    const manifest = chrome.runtime.getManifest();
+    const configFileUrl = chrome.runtime.getURL(manifest.config);
+    console.log('Attempting to fetch:', configFileUrl);
+
     // Load the configuration from config.json (locally)
-    const config = await fetchAndParseJSON(chrome.runtime.getURL('config.json'));
+    const config = await fetchAndParseJSON(configFileUrl);
     console.log('Loaded config:', config);
+
 
     // Set for storing filtered substrings
     const filteredSubstrings = new Set([...config.FILTERED_SUBSTRINGS]);
@@ -70,19 +76,14 @@
       };
     }
 
-    // Invoke the filterSpamPosts function to start filtering
-    await filterSpamPosts();
+  // Invoke the filterSpamPosts function to start filtering
+  await filterSpamPosts();
 
-    // Function to allow users to update userFilteredSubstrings
-    function addUserFilteredSubstring(substring) {
-      filteredSubstrings.add(substring);
-      // Update the configuration in storage
-      config.FILTERED_SUBSTRINGS = [...filteredSubstrings];
-      chrome.storage.local.set({ config }, () => {
-        console.log(`Added user-defined substring "${substring}" to the filter list.`);
-      });
-    }
-  } catch (error) {
-    console.error('Error in extension:', error.message);
+  // Function to allow users to update userFilteredSubstrings
+  function addUserFilteredSubstring(substring) {
+    filteredSubstrings.add(substring);
   }
+} catch (error) {
+  console.error('Error in extension:', error.message);
+}
 })();
