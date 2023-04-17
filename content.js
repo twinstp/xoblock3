@@ -70,7 +70,7 @@
   }
 
   // Test for hammingDistance function
-  console.log('Hamming distance test:', hammingDistance(BigInt('1001'), BigInt('1100')) === 2);
+  console.log('Hamming distance test:', hammingDistance(BigInt('0b1001'), BigInt('0b1100')) === 2);
 
   // Function to check if a message is similar to any in the cache
   function isSimilarToCachedMessages(hash, messageCache) {
@@ -79,8 +79,8 @@
     );
   }
 
-  // Regular expression used in extractText function
-  const extractTextRegex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
+  // Regular expression used in extractText function (updated to handle both http and https)
+  const extractTextRegex = /\(https?:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
 
   // Function to extract text content from a post
   function extractText(input) {
@@ -93,10 +93,10 @@
     return input;
   }
 
-  // Test for extractText function
+  // Test for extractText function (updated to match new regex)
   console.log(
     'Extract text test:',
-    extractText('(http://www.autoadmit.com/thread.php?thread_id=12345&forum_id=2#123) Some text') === 'Some text'
+    extractText('(https://www.autoadmit.com/thread.php?thread_id=12345&forum_id=2#123) Some text') === 'Some text'
   );
 
   // Function to filter out spam posts from the current page view
