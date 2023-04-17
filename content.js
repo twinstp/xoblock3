@@ -77,10 +77,12 @@ function filterSpamPosts() {
   // Select both posts and table of contents entries
   const messageTables = document.querySelectorAll("table[width='700'], table.threadlist tr");
   
-  const postData = Array.from(messageTables).map(table => ({
-    content: table.innerText.trim(),
-    id: table.id || table.getAttribute('name') // Use 'name' attribute for table of contents entries
-  }));
+  const postData = Array.from(messageTables)
+    .filter(table => table.id || table.getAttribute('name')) // Filter out elements without an 'id' or 'name'
+    .map(table => ({
+      content: table.innerText.trim(),
+      id: table.id || table.getAttribute('name') // Use 'name' attribute for table of contents entries
+    }));
 
   postData.forEach((post) => {
     const { content, id } = post;
