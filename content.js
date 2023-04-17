@@ -2,16 +2,15 @@
 (async function() {
   'use strict';
 
-  // Load the crypto-js library using a CDN link
+  // Load the crypto-js library from the extension's local directory
   const cryptoJsScript = document.createElement('script');
-  cryptoJsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
+  cryptoJsScript.src = chrome.runtime.getURL('crypto-js.min.js');
   document.head.appendChild(cryptoJsScript);
   
   await new Promise(resolve => cryptoJsScript.onload = resolve);
 
   // Load the configuration from config.json
   const config = await fetch(chrome.runtime.getURL('config.json')).then((response) => response.json());
-
 
   // Convert FILTERED_SUBSTRINGS and USER_FILTERED_SUBSTRINGS to Sets for faster lookup
   config.FILTERED_SUBSTRINGS = new Set(config.FILTERED_SUBSTRINGS);
