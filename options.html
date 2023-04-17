@@ -1,0 +1,21 @@
+<!-- options.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spam Filter Configuration</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="config-container">
+    <h1>Spam Filter Configuration</h1>
+    <label for="max-cache-size">Max Cache Size:</label>
+    <input type="number" id="max-cache-size" name="max-cache-size">
+    <label for="max-hamming-distance">Max Hamming Distance:</label>
+    <input type="number" id="max-hamming-distance" name="max-hamming-distance">
+    <label for="filtered-substrings">Filtered Substrings (comma-separated):</label>
+    <input type="text" id="filtered-substrings" name="filtered-substrings">
+    <button id="save-config">Save</button>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

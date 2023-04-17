@@ -22,7 +22,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["config.json", "crypto-js.min.js"],
+      "resources": ["config.json", "crypto-js.min.js", "filterWorker.js"],
       "matches": ["<all_urls>"]
     }
   ]
