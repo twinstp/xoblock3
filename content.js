@@ -74,16 +74,17 @@ let cacheIndex = 0;
 
 // Filter logic (similar to the original filterSpamPosts function)
 function filterSpamPosts() {
-  const filteredIds = [];
-  const messageTables = document.querySelectorAll("table[width='700']");
+  // Select both posts and table of contents entries
+  const messageTables = document.querySelectorAll("table[width='700'], table.threadlist tr");
+  
   const postData = Array.from(messageTables).map(table => ({
     content: table.innerText.trim(),
-    id: table.id
+    id: table.id || table.getAttribute('name') // Use 'name' attribute for table of contents entries
   }));
 
-    postData.forEach((post) => {
-      const { content, id } = post;
-      const joinedString = content.trim();
+  postData.forEach((post) => {
+    const { content, id } = post;
+    const joinedString = content.trim();
 
     // Ensure that only messages with more than 250 printable characters are filtered out
     if (joinedString.length <= 250) {
@@ -92,41 +93,41 @@ function filterSpamPosts() {
 
     // Convert filteredSubstrings Set to Array and check if the post content matches any predefined substrings
     if ([...filteredSubstrings].some((substring) => joinedString.includes(substring))) {
-      filteredIds.push(id); // Store the ID of the filtered post
+      hideElementById(id); // Hide the element by its ID
       return; // Exit early from the loop
     }
 
-      // Compute the SimHash of the post content
-      const simHash = computeSimHash(joinedString);
-      if (!simHash) {
-        // If simHash is null (BigInt not supported), skip this iteration
-        return;
-      }
-      // Check if the SimHash is similar to any cached SimHashes based on a threshold MAX_HAMMING_DISTANCE
-      const isSpamBySimHash = messageCache.some(
-        (cachedHash) => hammingDistance(simHash, cachedHash) <= config.MAX_HAMMING_DISTANCE
-      );
-      if (isSpamBySimHash) {
-        filteredIds.push(id); // Store the ID of the filtered post
-      } else {
-        // Update messageCache with the new SimHash
-        messageCache[cacheIndex] = simHash;
-        cacheIndex = (cacheIndex + 1) % MAX_CACHE_SIZE;
-      }
-    });
+    // Compute the SimHash of the post content
+    const simHash = computeSimHash(joinedString);
+    if (!simHash) {
+      // If simHash is null (BigInt not supported), skip this iteration
+      return;
+    }
+    // Check if the SimHash is similar to any cached SimHashes based on a threshold MAX_HAMMING_DISTANCE
+    const isSpamBySimHash = messageCache.some(
+      (cachedHash) => hammingDistance(simHash, cachedHash) <= config.MAX_HAMMING_DISTANCE
+    );
+    if (isSpamBySimHash) {
+      hideElementById(id); // Hide the element by its ID
+    } else {
+      // Update messageCache with the new SimHash
+      messageCache[cacheIndex] = simHash;
+      cacheIndex = (cacheIndex + 1) % MAX_CACHE_SIZE;
+    }
+  });
+}
 
-    // Hide filtered posts
-    filteredIds.forEach((id) => {
-      const table = document.getElementById(id);
-      if (table) {
-        table.style.visibility = 'hidden';
-        table.style.display = 'none';
-        console.log(`Filtered post with ID ${id}.`);
-      } else {
-        console.warn(`Element with ID ${id} not found.`);
-      }
-    });
+// Utility function to hide elements by ID
+function hideElementById(id) {
+  const element = document.getElementById(id) || document.querySelector(`[name='${id}']`);
+  if (element) {
+    element.style.visibility = 'hidden';
+    element.style.display = 'none';
+    console.log(`Filtered element with ID ${id}.`);
+  } else {
+    console.warn(`Element with ID ${id} not found.`);
   }
+}
 
 // Invoke the filterSpamPosts function to start filtering
 filterSpamPosts();
