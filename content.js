@@ -1,25 +1,6 @@
 (async function () {
   'use strict';
 
-  // Load the crypto-js library from the extension's local directory
-  const cryptoJsScript = document.createElement('script');
-  cryptoJsScript.src = chrome.runtime.getURL('crypto-js.min.js');
-
-  // Log when the script has loaded successfully
-  cryptoJsScript.onload = () => {
-    console.log('crypto-js script loaded successfully');
-  };
-
-  // Log and handle errors if the script fails to load
-  cryptoJsScript.onerror = (error) => {
-    console.error('Failed to load crypto-js script:', error);
-  };
-
-  document.head.appendChild(cryptoJsScript);
-
-  // Wait for the script to load before proceeding
-  await new Promise((resolve) => (cryptoJsScript.onload = resolve));
-
   // Define initial configuration
   const initialConfig = {
     MAX_CACHE_SIZE: 500,
@@ -35,12 +16,15 @@
 
   // Load the configuration from chrome.storage.local, or use initialConfig as a fallback
   let config;
+  let MAX_CACHE_SIZE;
   try {
     const storedConfig = await new Promise((resolve) => chrome.storage.local.get('config', resolve));
     config = storedConfig.config || initialConfig;
+    MAX_CACHE_SIZE = Math.max(config.MAX_CACHE_SIZE || 500, 1);
   } catch (error) {
     console.warn('Failed to load configuration from storage. Using initial configuration.');
     config = initialConfig;
+    MAX_CACHE_SIZE = 500;
   }
 
   // Set for storing filtered substrings
@@ -78,25 +62,24 @@
     return simHash;
   }
 
-  // Utility function to calculate Hamming distance between two SimHashes
-  function hammingDistance(hash1, hash2) {
-    const x = hash1 ^ hash2;
-    return x.toString(2).split('').filter((bit) => bit === '1').length;
-  }
+// Utility function to calculate Hamming distance between two SimHashes
+function hammingDistance(hash1, hash2) {
+  const x = hash1 ^ hash2;
+  return x.toString(2).split('').filter((bit) => bit === '1').length;
+}
 
-  // Initialize messageCache and cacheIndex
-  const messageCache = [];
-  let cacheIndex = 0;
-  const MAX_CACHE_SIZE = Math.max(config.MAX_CACHE_SIZE || 500, 1);
+// Initialize messageCache and cacheIndex
+const messageCache = [];
+let cacheIndex = 0;
+
+// Filter logic (similar to the original filterSpamPosts function)
+function filterSpamPosts() {
   const filteredIds = [];
-
-  // Filter logic (similar to the original filterSpamPosts function)
-  function filterSpamPosts() {
-    const messageTables = document.querySelectorAll("table[width='700']");
-    const postData = Array.from(messageTables).map(table => ({
-      content: table.innerText.trim(),
-      id: table.id
-    }));
+  const messageTables = document.querySelectorAll("table[width='700']");
+  const postData = Array.from(messageTables).map(table => ({
+    content: table.innerText.trim(),
+    id: table.id
+  }));
 
     postData.forEach((post) => {
       const { content, id } = post;
@@ -145,39 +128,39 @@
     });
   }
 
-  // Invoke the filterSpamPosts function to start filtering
-  filterSpamPosts();
+// Invoke the filterSpamPosts function to start filtering
+filterSpamPosts();
 
-  // Function to allow users to update userFilteredSubstrings
-  function addUserFilteredSubstring(substring) {
-    filteredSubstrings.add(substring);
-    // Update the configuration in storage
-    config.FILTERED_SUBSTRINGS = [...filteredSubstrings];
-    chrome.storage.local.set({ config }, () => {
-      console.log(`Added user-defined substring "${substring}" to the filter list.`);
-    });
+// Function to allow users to update userFilteredSubstrings
+function addUserFilteredSubstring(substring) {
+  filteredSubstrings.add(substring);
+  // Update the configuration in storage
+  config.FILTERED_SUBSTRINGS = [...filteredSubstrings];
+  chrome.storage.local.set({ config }, () => {
+    console.log(`Added user-defined substring "${substring}" to the filter list.`);
+  });
+}
+
+// Register a listener for the "addUserFilteredSubstring" message
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'addUserFilteredSubstring' && message.substring) {
+    addUserFilteredSubstring(message.substring);
+    sendResponse({ success: true });
   }
-    
-  // Register a listener for the "addUserFilteredSubstring" message
-  // This allows the background or options page to request the addition of a new substring to the filter
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'addUserFilteredSubstring' && message.substring) {
-      addUserFilteredSubstring(message.substring);
-      sendResponse({ success: true });
-    }
-  });
-    
-  // Invoke the filterSpamPosts function again to apply changes if the configuration is updated
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && changes.config) {
-      // Update the local configuration and filtered substrings
-      config = changes.config.newValue;
-      filteredSubstrings.clear();
-      config.FILTERED_SUBSTRINGS.forEach((substring) => filteredSubstrings.add(substring));
-      // Re-run the filter
-      filterSpamPosts();
-    }
-  });
+});
+
+// Invoke the filterSpamPosts function again to apply changes if the configuration is updated
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.config) {
+    // Update the local configuration and filtered substrings
+    config = changes.config.newValue;
+    MAX_CACHE_SIZE = Math.max(config.MAX_CACHE_SIZE || 500, 1);
+    filteredSubstrings.clear();
+    config.FILTERED_SUBSTRINGS.forEach((substring) => filteredSubstrings.add(substring));
+    // Re-run the filter
+    filterSpamPosts();
+  }
+});
   
 })().catch((error) => {
   console.error('Error in extension:', error.message);
