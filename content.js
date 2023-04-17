@@ -1,8 +1,8 @@
 (async function () {
   'use strict';
 
-  // Load the configuration from config.json
-  const config = await fetch(chrome.runtime.getURL('config.json')).then((response) => response.json());
+  // Load the configuration from config.json (locally)
+  const config = JSON.parse(await (await fetch('config.json')).text());
   console.log('Loaded config:', config);
 
   // Set for storing filtered substrings
@@ -16,9 +16,9 @@
       id: table.id
     }));
 
-    // Load crypto-js.min.js and filterWorker.js as strings
-    const cryptoJsScript = await fetch(chrome.runtime.getURL('crypto-js.min.js')).then((res) => res.text());
-    const filterWorkerScript = await fetch(chrome.runtime.getURL('filterWorker.js')).then((res) => res.text());
+    // Load crypto-js.min.js and filterWorker.js as strings (locally)
+    const cryptoJsScript = await (await fetch('crypto-js.min.js')).text();
+    const filterWorkerScript = await (await fetch('filterWorker.js')).text();
 
     // Combine the two scripts into one
     const combinedScript = `${cryptoJsScript}\n${filterWorkerScript}`;
