@@ -1,19 +1,26 @@
 (async function () {
   'use strict';
 
-  // Get the URL of the config.json file within the extension's directory
-  const configFileUrl = chrome.runtime.getURL('config.json');
-
-  // Load the configuration from config.json (locally)
-  const response = await fetch(configFileUrl);
-  if (!response.ok) {
-    console.error('Failed to load config.json:', response.statusText);
-    return;
+  async function fetchAndParseJSON(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+    }
+    return await response.json();
   }
 
-  // Parse the JSON content of the response
-  const config = await response.json();
-  console.log('Loaded config:', config);
+  async function fetchText(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+    }
+    return await response.text();
+  }
+
+  try {
+    // Load the configuration from config.json (locally)
+    const config = await fetchAndParseJSON(chrome.runtime.getURL('config.json'));
+    console.log('Loaded config:', config);
 
     // Set for storing filtered substrings
     const filteredSubstrings = new Set([...config.FILTERED_SUBSTRINGS]);
@@ -27,8 +34,8 @@
       }));
 
       // Load crypto-js.min.js and filterWorker.js as strings (locally)
-      const cryptoJsScript = await (await fetch(chrome.runtime.getURL('crypto-js.min.js'))).text();
-      const filterWorkerScript = await (await fetch(chrome.runtime.getURL('filterWorker.js'))).text();
+      const cryptoJsScript = await fetchText(chrome.runtime.getURL('crypto-js.min.js'));
+      const filterWorkerScript = await fetchText(chrome.runtime.getURL('filterWorker.js'));
 
       // Combine the two scripts into one
       const combinedScript = `${cryptoJsScript}\n${filterWorkerScript}`;
@@ -44,7 +51,7 @@
       filterWorker.postMessage({
         postData,
         config,
-        filteredSubstrings: [...filteredSubstrings] // Convert the set to an array
+        filteredSubstrings: [...filteredSubstrings]
       });
 
       // Receive filtered data from the worker
@@ -52,22 +59,20 @@
         const { filteredIds } = event.data;
         filteredIds.forEach((id) => {
           const table = document.getElementById(id);
-          // Check if the element with the given ID exists before modifying its style
           if (table) {
             table.style.visibility = 'hidden';
             table.style.display = 'none';
             console.log(`Filtered post with ID ${id}.`);
           } else {
-            // Optionally, log a message if the element is not found
             console.warn(`Element with ID ${id} not found.`);
           }
         });
       };
     }
-    
+
     // Invoke the filterSpamPosts function to start filtering
     await filterSpamPosts();
-    
+
     // Function to allow users to update userFilteredSubstrings
     function addUserFilteredSubstring(substring) {
       filteredSubstrings.add(substring);
@@ -77,4 +82,7 @@
         console.log(`Added user-defined substring "${substring}" to the filter list.`);
       });
     }
-  })();
+  } catch (error) {
+    console.error('Error in extension:', error.message);
+  }
+})();
