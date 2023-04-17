@@ -1,14 +1,19 @@
 (async function () {
   'use strict';
 
-  // Load the configuration from chrome.storage.local
-  chrome.storage.local.get('config', async ({ config }) => {
-    if (!config) {
-      console.log('No configuration found in storage.');
-      return;
-    }
-    
-    console.log('Loaded config:', config);
+  // Get the URL of the config.json file within the extension's directory
+  const configFileUrl = chrome.runtime.getURL('config.json');
+
+  // Load the configuration from config.json (locally)
+  const response = await fetch(configFileUrl);
+  if (!response.ok) {
+    console.error('Failed to load config.json:', response.statusText);
+    return;
+  }
+
+  // Parse the JSON content of the response
+  const config = await response.json();
+  console.log('Loaded config:', config);
 
     // Set for storing filtered substrings
     const filteredSubstrings = new Set([...config.FILTERED_SUBSTRINGS]);
@@ -72,5 +77,4 @@
         console.log(`Added user-defined substring "${substring}" to the filter list.`);
       });
     }
-    });
-    })();    
+  })();
