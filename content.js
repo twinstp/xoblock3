@@ -12,15 +12,19 @@
   async function filterSpamPosts() {
     const messageTables = document.querySelectorAll("table[width='700']");
     const postData = Array.from(messageTables).map(table => ({
-      content: table.innerText.trim(), // Extract and trim text content
-      id: table.id // Identify the table element
+      content: table.innerText.trim(),
+      id: table.id
     }));
 
-    // Load filterWorker.js as a string
+    // Load crypto-js.min.js and filterWorker.js as strings
+    const cryptoJsScript = await fetch(chrome.runtime.getURL('crypto-js.min.js')).then((res) => res.text());
     const filterWorkerScript = await fetch(chrome.runtime.getURL('filterWorker.js')).then((res) => res.text());
 
-    // Create a Blob URL for the worker script
-    const blob = new Blob([filterWorkerScript], { type: 'text/javascript' });
+    // Combine the two scripts into one
+    const combinedScript = `${cryptoJsScript}\n${filterWorkerScript}`;
+
+    // Create a Blob URL for the combined script
+    const blob = new Blob([combinedScript], { type: 'text/javascript' });
     const blobURL = URL.createObjectURL(blob);
 
     // Create a Web Worker using the Blob URL
