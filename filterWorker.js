@@ -1,7 +1,9 @@
-// filterWorker.js
+// Import the crypto-js library using a relative path
+importScripts('crypto-js.min.js');
+
 self.onmessage = (event) => {
-    const { postData, config, filteredSubstrings } = event.data;
-    
+  const { postData, config, filteredSubstrings } = event.data;
+      
     // Utility function to tokenize a message
     function tokenize(message) {
       return message.split(/\s+/);
