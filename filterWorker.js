@@ -2,9 +2,12 @@
 self.onmessage = (event) => {
   const { postData, config, filteredSubstrings } = event.data;
 
+  console.log('Worker received data:', { postData, config, filteredSubstrings });
+
   // Check if BigInt is supported
   if (typeof BigInt === 'undefined') {
     // BigInt is not supported, handle accordingly
+    console.warn('BigInt is not supported');
     self.postMessage({ error: 'BigInt is not supported' });
     return;
   }
@@ -90,5 +93,6 @@ self.onmessage = (event) => {
   });
 
   // Send the filtered IDs back to the main script
+  console.log('Worker filtered IDs:', filteredIds);
   self.postMessage({ filteredIds });
 };
