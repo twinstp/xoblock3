@@ -20,7 +20,22 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": ["crypto-js.min.js", "content.js", "options.js"]
+      "js": ["crypto-js.min.js", "content.js"]
     }
+  ],
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.xoxohth.com/*",
+    "https://xoxohth.com/*",
+    "http://xoxohth.com/*",
+    "http://www.xoxohth.com/*",
+    "https://*.xoxohth.com/*",
+    "http://*.xoxohth.com/*",
+    "https://www.autoadmit.com/*",
+    "https://autoadmit.com/*",
+    "http://autoadmit.com/*",
+    "http://www.autoadmit.com/*"
   ]
 }

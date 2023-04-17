@@ -31,4 +31,5 @@ document.addEventListener('DOMContentLoaded', () => {
       // Notify the user that the configuration has been saved
       alert('Configuration saved successfully.');
     });
-  });  
+  });
+  
