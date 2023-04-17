@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('max-cache-size').value = config.MAX_CACHE_SIZE;
         document.getElementById('max-hamming-distance').value = config.MAX_HAMMING_DISTANCE;
         document.getElementById('filtered-substrings').value = config.FILTERED_SUBSTRINGS.join(',');
-        console.log('Loaded config:', config);
       }
     });
   

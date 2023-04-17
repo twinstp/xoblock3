@@ -3,7 +3,6 @@
   "name": "Filter XOXO_TwinstpVer",
   "description": "A Chrome extension that filters xoxo posts.",
   "version": "1.0",
-  "config": "config.json",  
   "action": {
     "default_popup": "options.html"
   },
@@ -21,7 +20,7 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["crypto-js.min.js", "content.js"]
     }
   ]
 }
