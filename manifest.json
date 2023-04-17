@@ -3,6 +3,9 @@
   "name": "Filter XOXO_TwinstpVer",
   "description": "A Chrome extension that filters xoxo posts.",
   "version": "1.0",
+  "action": {
+    "default_popup": "options.html"
+  },
   "content_scripts": [
     {
       "matches": [
