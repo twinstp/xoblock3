@@ -72,21 +72,16 @@
     );
   }
 
-  // Regular expression used in extractText function (updated to match both http and https)
-  const extractTextRegex = /\(https?:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
+  // Updated regular expression to match both http and https, as well as the surrounding parentheses
+  const extractTextRegex = /\(https?:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)\s*/;
 
-  // Function to extract text content from a post
+  // Updated function to extract text content from a post
   function extractText(input) {
-    if (extractTextRegex.test(input)) {
-      return input.replace(extractTextRegex, '').trim();
-    }
-    if (input.startsWith(')')) {
-      input = input.substring(1);
-    }
-    return input;
+    // Use the updated regular expression to remove the URL and keep only the text content
+    return input.replace(extractTextRegex, '').trim();
   }
 
-  // Test for extractText function
+  // Updated test for extractText function
   console.log(
     'Extract text test (https):',
     extractText('(https://www.autoadmit.com/thread.php?thread_id=12345&forum_id=2#123) Some text') === 'Some text'
