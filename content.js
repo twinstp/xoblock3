@@ -1,30 +1,31 @@
-(function() {
-    'use strict';
-  
-    // Configuration settings
-    const config = {
-      MAX_CACHE_SIZE: 500,
-      MAX_HAMMING_DISTANCE: 3,
-      FILTERED_SUBSTRINGS: [
-        'modification, and he recently agreed to answer our questions',
-        'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
-        'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
-        'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
-        'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.'
-      ],
-      USER_FILTERED_SUBSTRINGS: []
-    };
-  
-    // Utility function to tokenize a message
-    function tokenize(message) {
-      return message.split(/\s+/);
-    }
-  
+// content.js
+// Load the configuration from config.json
+const config = await fetch(chrome.runtime.getURL('config.json')).then((response) => response.json());
+
+(async function () {
+  'use strict';
+
+  // Load the crypto-js library using a CDN link
+  const cryptoJsScript = document.createElement('script');
+  cryptoJsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
+  document.head.appendChild(cryptoJsScript);
+
+  await new Promise((resolve) => (cryptoJsScript.onload = resolve));
+
+  // Convert FILTERED_SUBSTRINGS and USER_FILTERED_SUBSTRINGS to Sets for faster lookup
+  config.FILTERED_SUBSTRINGS = new Set(config.FILTERED_SUBSTRINGS);
+  config.USER_FILTERED_SUBSTRINGS = new Set();
+
+  // Utility function to tokenize a message
+  function tokenize(message) {
+    return message.split(/\s+/);
+  }
+
   // Utility function to compute SimHash of a message
-  async function computeSimHash(message) {
+  function computeSimHash(message) {
     const tokenWeights = new Map();
     const tokens = tokenize(message);
-    tokens.forEach(token => {
+    tokens.forEach((token) => {
       const weight = tokenWeights.get(token) || 0;
       tokenWeights.set(token, weight + 1);
     });
@@ -32,13 +33,9 @@
     const fingerprintBits = 64;
     const v = new Int32Array(fingerprintBits);
     for (const [token, weight] of tokenWeights.entries()) {
-      const textEncoder = new TextEncoder();
-      const encodedToken = textEncoder.encode(token);
-      const hashBuffer = await window.crypto.subtle.digest('SHA-1', encodedToken);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hash = parseInt(hashArray.map(byte => byte.toString(16).padStart(2, '0')).join(''), 16);
+      const hash = BigInt('0x' + CryptoJS.SHA1(token).toString());
       for (let i = 0; i < fingerprintBits; ++i) {
-        v[i] += (hash >> i) & 1 ? weight : -weight;
+        v[i] += (hash >> BigInt(i)) & BigInt(1) ? weight : -weight;
       }
     }
 
@@ -49,59 +46,28 @@
       }
     }
     return simHash;
-  } 
-    // Utility function to calculate Hamming distance between two SimHashes
-    function hammingDistance(hash1, hash2) {
-      const x = hash1 ^ hash2;
-      return x.toString(2).split('').filter(bit => bit === '1').length;
-    }
-  
-    // Function to check if a message is similar to any in the cache
-    function isSimilarToCachedMessages(hash, messageCache) {
-      for (const cachedHash of messageCache.keys()) {
-        if (hammingDistance(hash, cachedHash) <= config.MAX_HAMMING_DISTANCE) {
-          return true;
-        }
-      }
-      return false;
-    }
-  
-    // Main function to check messages and filter out spam
-    function checkAndFilterMessage(message, postElement, postId, messageCache) {
-      // Check for specific substrings
-      const filteredSubstrings = config.FILTERED_SUBSTRINGS.concat(config.USER_FILTERED_SUBSTRINGS);
-      for (const substring of filteredSubstrings) {
-        if (message.includes(substring)) {
-          return true; // Indicate that the post should be removed
-        }
-      }
-  
-      // Compute SimHash and check for repeated or similar messages
-      const simHash = computeSimHash(message);
-      if (isSimilarToCachedMessages(simHash, messageCache)) {
-        return true; // Indicate that the post should be removed
-    } else {
-      // Update cache with the new hash
-      messageCache.set(simHash, 1);
-      // Remove the oldest entry if cache size exceeds the limit
-      if (messageCache.size > config.MAX_CACHE_SIZE) {
-        const oldestHash = messageCache.keys().next().value;
-        messageCache.delete(oldestHash);
-      }
-    }
-    return false; // Indicate that the post should not be removed
   }
 
-  // Utility function to check if a string contains only whitespace
-  function isAllWhitespace(text) {
-    return /^\s*$/.test(text);
+  // Utility function to calculate Hamming distance between two SimHashes
+  function hammingDistance(hash1, hash2) {
+    const x = hash1 ^ hash2;
+    return x.toString(2).split('').filter((bit) => bit === '1').length;
   }
+
+  // Function to check if a message is similar to any in the cache
+  function isSimilarToCachedMessages(hash, messageCache) {
+    return Array.from(messageCache.keys()).some(
+      (cachedHash) => hammingDistance(hash, cachedHash) <= config.MAX_HAMMING_DISTANCE
+    );
+  }
+
+  // Regular expression used in extractText function
+  const extractTextRegex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
 
   // Function to extract text content from a post
   function extractText(input) {
-    const regex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
-    if (regex.test(input)) {
-      return input.replace(regex, '').trim();
+    if (extractTextRegex.test(input)) {
+      return input.replace(extractTextRegex, '').trim();
     }
     if (input.startsWith(')')) {
       input = input.substring(1);
@@ -110,12 +76,11 @@
   }
 
   // Function to filter out spam posts from the current page view
-  function filterSpamPosts() {
+  async function filterSpamPosts() {
     const messageCache = new Map();
     const messageTables = document.querySelectorAll("table[width='700']");
     for (const table of messageTables) {
-      const cellspacing = table.getAttribute('cellspacing') ? 'cellspacing' : null;
-      if (cellspacing) {
+      if (table.getAttribute('cellspacing')) {
         continue;
       }
       const bodyElement = table.querySelector('table font');
@@ -125,32 +90,43 @@
       let authorDetected = false;
       const bodyStrings = [];
       for (const child of bodyElement.childNodes) {
-        if (child.textContent && !isAllWhitespace(child.textContent)) {
-          const textContent = child.textContent;
+        const textContent = child.textContent?.trim();
+        if (textContent) {
           if (!authorDetected) {
             if (textContent.startsWith('Author:')) {
               authorDetected = true;
             }
             continue;
           }
-          bodyStrings.push(extractText(child.textContent));
+          bodyStrings.push(extractText(textContent));
         }
       }
       const joinedString = bodyStrings.join('');
       // Check if the post content matches any predefined or user-defined substrings
-      const isSpam = checkAndFilterMessage(joinedString, table, null, messageCache);
-      if (isSpam) {
+      const filteredSubstrings = Array.from(new Set([...config.FILTERED_SUBSTRINGS, ...config.USER_FILTERED_SUBSTRINGS]));
+      const isSpamBySubstring = filteredSubstrings.some((substring) => joinedString.includes(substring));
+      const simHash = computeSimHash(joinedString);
+      const isSpamBySimHash = isSimilarToCachedMessages(simHash, messageCache);
+      if (isSpamBySubstring || isSpamBySimHash) {
         table.style.visibility = 'hidden';
         table.style.display = 'none';
+        continue;
+      }
+      // Update cache with the new hash
+      messageCache.set(simHash, 1);
+      // Remove the oldest entry if cache size exceeds the limit
+      if (messageCache.size > config.MAX_CACHE_SIZE) {
+        const oldestHash = messageCache.keys().next().value;
+        messageCache.delete(oldestHash);
       }
     }
   }
 
   // Invoke the filterSpamPosts function to start filtering
-  filterSpamPosts();
+  await filterSpamPosts();
 
   // Function to allow users to update userFilteredSubstrings
   function addUserFilteredSubstring(substring) {
-    config.USER_FILTERED_SUBSTRINGS.push(substring);
+    config.USER_FILTERED_SUBSTRINGS.add(substring);
   }
 })();

@@ -3,21 +3,6 @@
   "name": "Filter XOXO_TwinstpVer",
   "description": "A Chrome extension that filters xoxo posts.",
   "version": "1.0",
-  "permissions": [
-    "https://www.xoxohth.com/*",
-    "https://xoxohth.com/*",
-    "http://xoxohth.com/*",
-    "http://www.xoxohth.com/*",
-    "https://*.xoxohth.com/*",
-    "http://*.xoxohth.com/*",
-    "https://www.autoadmit.com/*",
-    "https://autoadmit.com/*",
-    "http://autoadmit.com/*",
-    "http://www.autoadmit.com/*"
-  ],
-  "background": {
-    "service_worker": "background.js"
-  },
   "content_scripts": [
     {
       "matches": [
@@ -33,6 +18,12 @@
         "http://www.autoadmit.com/*"
       ],
       "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["config.json"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
