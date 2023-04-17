@@ -20,7 +20,7 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": ["crypto-js.min.js", "content.js"]
+      "js": ["crypto-js.min.js", "content.js", "options.js"]
     }
   ]
 }
