@@ -123,7 +123,8 @@
       }
       const joinedString = bodyStrings.join('');
       // Check if the post content matches any predefined substrings
-      const isSpamBySubstring = filteredSubstrings.some((substring) =>
+      // Convert the Set to an Array before using the some method
+      const isSpamBySubstring = [...filteredSubstrings].some((substring) =>
         joinedString.includes(substring)
       );
       const simHash = computeSimHash(joinedString);
