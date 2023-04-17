@@ -1,14 +1,19 @@
-<!-- options.html -->
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Spam Filter Configuration</title>
-  <link rel="stylesheet" href="options.css">
+  <title>Spam Filter Extension Options</title>
 </head>
 <body>
-  <div class="config-container">
-    <!-- Form content here -->
-  </div>
-  <script src="options.js"></script> <!-- Include options.js as an external script -->
+  <h1>Configuration</h1>
+  <form>
+    <label for="max-cache-size">Max Cache Size:</label>
+    <input type="number" id="max-cache-size" name="max-cache-size"><br><br>
+    <label for="max-hamming-distance">Max Hamming Distance:</label>
+    <input type="number" id="max-hamming-distance" name="max-hamming-distance"><br><br>
+    <label for="filtered-substrings">Filtered Substrings (separated by commas):</label><br>
+    <textarea id="filtered-substrings" name="filtered-substrings" rows="4" cols="50"></textarea><br><br>
+    <button id="save-config" type="button">Save Configuration</button>
+  </form>
+  <script src="options.js"></script>
 </body>
 </html>
