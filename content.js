@@ -102,16 +102,16 @@
       const { content, id } = post;
       const joinedString = content.trim();
 
-      // Ensure that only messages with more than 250 printable characters are filtered out
-      if (joinedString.length <= 250) {
-        return;
-      }
+    // Ensure that only messages with more than 250 printable characters are filtered out
+    if (joinedString.length <= 250) {
+      return;
+    }
 
-      // Check if the post content matches any predefined substrings
-      if (filteredSubstrings.some((substring) => joinedString.includes(substring))) {
-        filteredIds.push(id); // Store the ID of the filtered post
-        return; // Exit early from the loop
-      }
+    // Convert filteredSubstrings Set to Array and check if the post content matches any predefined substrings
+    if ([...filteredSubstrings].some((substring) => joinedString.includes(substring))) {
+      filteredIds.push(id); // Store the ID of the filtered post
+      return; // Exit early from the loop
+    }
 
       // Compute the SimHash of the post content
       const simHash = computeSimHash(joinedString);
