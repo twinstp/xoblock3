@@ -46,42 +46,107 @@
   // Set for storing filtered substrings
   const filteredSubstrings = new Set([...config.FILTERED_SUBSTRINGS]);
 
-  // Function to filter out spam posts from the current page view
-  async function filterSpamPosts() {
+  // Utility function to tokenize a message
+  function tokenize(message) {
+    return message.split(/\s+/);
+  }
+
+  // Utility function to compute SimHash of a message
+  function computeSimHash(message) {
+    const tokenWeights = new Map();
+    const tokens = tokenize(message);
+    tokens.forEach((token) => {
+      const weight = tokenWeights.get(token) || 0;
+      tokenWeights.set(token, weight + 1);
+    });
+
+    const fingerprintBits = 64;
+    const v = new Int32Array(fingerprintBits);
+    for (const [token, weight] of tokenWeights.entries()) {
+      const hash = BigInt('0x' + CryptoJS.SHA1(token).toString());
+      for (let i = 0; i < fingerprintBits; ++i) {
+        v[i] += (hash >> BigInt(i)) & BigInt(1) ? weight : -weight;
+      }
+    }
+
+    let simHash = BigInt(0);
+    for (let i = 0; i < fingerprintBits; ++i) {
+      if (v[i] > 0) {
+        simHash |= BigInt(1) << BigInt(i);
+      }
+    }
+    return simHash;
+  }
+
+  // Utility function to calculate Hamming distance between two SimHashes
+  function hammingDistance(hash1, hash2) {
+    const x = hash1 ^ hash2;
+    return x.toString(2).split('').filter((bit) => bit === '1').length;
+  }
+
+  // Initialize messageCache and cacheIndex
+  const messageCache = [];
+  let cacheIndex = 0;
+  const MAX_CACHE_SIZE = Math.max(config.MAX_CACHE_SIZE || 500, 1);
+  const filteredIds = [];
+
+  // Filter logic (similar to the original filterSpamPosts function)
+  function filterSpamPosts() {
     const messageTables = document.querySelectorAll("table[width='700']");
     const postData = Array.from(messageTables).map(table => ({
       content: table.innerText.trim(),
       id: table.id
     }));
 
-    // Create a Web Worker for the filterWorker script
-    const filterWorker = new Worker(chrome.runtime.getURL('workerLoader.js'));
+    postData.forEach((post) => {
+      const { content, id } = post;
+      const joinedString = content.trim();
 
-    // Send data to the worker, including postData, config, and filteredSubstrings (converted to array)
-    filterWorker.postMessage({
-      postData,
-      config,
-      filteredSubstrings: [...filteredSubstrings]
+      // Ensure that only messages with more than 250 printable characters are filtered out
+      if (joinedString.length <= 250) {
+        return;
+      }
+
+      // Check if the post content matches any predefined substrings
+      if (filteredSubstrings.some((substring) => joinedString.includes(substring))) {
+        filteredIds.push(id); // Store the ID of the filtered post
+        return; // Exit early from the loop
+      }
+
+      // Compute the SimHash of the post content
+      const simHash = computeSimHash(joinedString);
+      if (!simHash) {
+        // If simHash is null (BigInt not supported), skip this iteration
+        return;
+      }
+      // Check if the SimHash is similar to any cached SimHashes based on a threshold MAX_HAMMING_DISTANCE
+      const isSpamBySimHash = messageCache.some(
+        (cachedHash) => hammingDistance(simHash, cachedHash) <= config.MAX_HAMMING_DISTANCE
+      );
+      if (isSpamBySimHash) {
+        filteredIds.push(id); // Store the ID of the filtered post
+      } else {
+        // Update messageCache with the new SimHash
+        messageCache[cacheIndex] = simHash;
+        cacheIndex = (cacheIndex + 1) % MAX_CACHE_SIZE;
+      }
     });
 
-    // Receive filtered data from the worker
-    filterWorker.onmessage = (event) => {
-      const { filteredIds } = event.data;
-      filteredIds.forEach((id) => {
-        const table = document.getElementById(id);
-        if (table) {
-          table.style.visibility = 'hidden';
-          table.style.display = 'none';
-          console.log(`Filtered post with ID ${id}.`);
-        } else {
-          console.warn(`Element with ID ${id} not found.`);
-        }
-      });
-    };
+    // Hide filtered posts
+    filteredIds.forEach((id) => {
+      const table = document.getElementById(id);
+      if (table) {
+        table.style.visibility = 'hidden';
+        table.style.display = 'none';
+        console.log(`Filtered post with ID ${id}.`);
+      } else {
+        console.warn(`Element with ID ${id} not found.`);
+      }
+    });
   }
 
   // Invoke the filterSpamPosts function to start filtering
-  await filterSpamPosts();
+  filterSpamPosts();
 
   // Function to allow users to update userFilteredSubstrings
   function addUserFilteredSubstring(substring) {
