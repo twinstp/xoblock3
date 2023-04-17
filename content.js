@@ -20,36 +20,36 @@
       return message.split(/\s+/);
     }
   
-    // Utility function to compute SimHash of a message
-    function computeSimHash(message) {
-      const tokenWeights = new Map();
-      const tokens = tokenize(message);
-      tokens.forEach(token => {
-        const weight = tokenWeights.get(token) || 0;
-        tokenWeights.set(token, weight + 1);
-      });
-  
-      const fingerprintBits = 64;
-      const v = new Int32Array(fingerprintBits);
-      tokenWeights.forEach((weight, token) => {
-        const hash = parseInt(crypto.subtle.digest('SHA-1', new TextEncoder().encode(token))
-          .then(hashBuffer => Array.from(new Uint8Array(hashBuffer))
-            .map(byte => byte.toString(16).padStart(2, '0'))
-            .join('')), 16);
-        for (let i = 0; i < fingerprintBits; ++i) {
-          v[i] += (hash >> i) & 1 ? weight : -weight;
-        }
-      });
-  
-      let simHash = BigInt(0);
+  // Utility function to compute SimHash of a message
+  async function computeSimHash(message) {
+    const tokenWeights = new Map();
+    const tokens = tokenize(message);
+    tokens.forEach(token => {
+      const weight = tokenWeights.get(token) || 0;
+      tokenWeights.set(token, weight + 1);
+    });
+
+    const fingerprintBits = 64;
+    const v = new Int32Array(fingerprintBits);
+    for (const [token, weight] of tokenWeights.entries()) {
+      const textEncoder = new TextEncoder();
+      const encodedToken = textEncoder.encode(token);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-1', encodedToken);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hash = parseInt(hashArray.map(byte => byte.toString(16).padStart(2, '0')).join(''), 16);
       for (let i = 0; i < fingerprintBits; ++i) {
-        if (v[i] > 0) {
-          simHash |= BigInt(1) << BigInt(i);
-        }
+        v[i] += (hash >> i) & 1 ? weight : -weight;
       }
-      return simHash;
     }
-  
+
+    let simHash = BigInt(0);
+    for (let i = 0; i < fingerprintBits; ++i) {
+      if (v[i] > 0) {
+        simHash |= BigInt(1) << BigInt(i);
+      }
+    }
+    return simHash;
+  } 
     // Utility function to calculate Hamming distance between two SimHashes
     function hammingDistance(hash1, hash2) {
       const x = hash1 ^ hash2;

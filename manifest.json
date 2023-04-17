@@ -1,9 +1,9 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 3,
   "name": "Filter XOXO_TwinstpVer",
   "description": "A Chrome extension that filters xoxo posts.",
   "version": "1.0",
-  "host_permissions": [
+  "permissions": [
     "https://www.xoxohth.com/*",
     "https://xoxohth.com/*",
     "http://xoxohth.com/*",
@@ -15,6 +15,9 @@
     "http://autoadmit.com/*",
     "http://www.autoadmit.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -22,8 +25,8 @@
         "https://xoxohth.com/*",
         "http://xoxohth.com/*",
         "http://www.xoxohth.com/*",
-        "http://*.xoxohth.com/*",
         "https://*.xoxohth.com/*",
+        "http://*.xoxohth.com/*",
         "https://www.autoadmit.com/*",
         "https://autoadmit.com/*",
         "http://autoadmit.com/*",
