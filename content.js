@@ -24,17 +24,13 @@
   const config = await fetch(chrome.runtime.getURL('config.json')).then((response) => response.json());
   console.log('Loaded config:', config);
 
-  // Convert FILTERED_SUBSTRINGS and USER_FILTERED_SUBSTRINGS to Sets for faster lookup
-  config.FILTERED_SUBSTRINGS = new Set(config.FILTERED_SUBSTRINGS);
-  config.USER_FILTERED_SUBSTRINGS = new Set();
+  // Set for storing filtered substrings
+  const filteredSubstrings = new Set([...config.FILTERED_SUBSTRINGS]);
 
   // Utility function to tokenize a message
   function tokenize(message) {
     return message.split(/\s+/);
   }
-
-  // Test for tokenize function
-  console.log('Tokenize test:', JSON.stringify(tokenize('Hello World')) === JSON.stringify(['Hello', 'World']));
 
   // Utility function to compute SimHash of a message
   function computeSimHash(message) {
@@ -69,18 +65,16 @@
     return x.toString(2).split('').filter((bit) => bit === '1').length;
   }
 
-  // Test for hammingDistance function
-  console.log('Hamming distance test:', hammingDistance(BigInt('1001'), BigInt('1100')) === 2);
-
   // Function to check if a message is similar to any in the cache
-  function isSimilarToCachedMessages(hash, messageCache) {
+  function isSimilarToCachedMessages(hash, messageCache, maxHammingDistance) {
     return Array.from(messageCache.keys()).some(
-      (cachedHash) => hammingDistance(hash, cachedHash) <= config.MAX_HAMMING_DISTANCE
+      (cachedHash) => hammingDistance(hash, cachedHash) <= maxHammingDistance
     );
   }
 
-  // Regular expression used in extractText function
-  const extractTextRegex = /\(https?:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/
+  // Regular expression used in extractText function (updated to match both http and https)
+  const extractTextRegex = /\(https?:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
+
   // Function to extract text content from a post
   function extractText(input) {
     if (extractTextRegex.test(input)) {
@@ -97,6 +91,9 @@
     'Extract text test (https):',
     extractText('(https://www.autoadmit.com/thread.php?thread_id=12345&forum_id=2#123) Some text') === 'Some text'
   );
+
+  // Test for hammingDistance function
+  console.log('Hamming distance test:', hammingDistance(BigInt('0b1001'), BigInt('0b1100')) === 2);
 
   // Function to filter out spam posts from the current page view
   async function filterSpamPosts() {
@@ -125,15 +122,12 @@
         }
       }
       const joinedString = bodyStrings.join('');
-      // Check if the post content matches any predefined or user-defined substrings
-      const filteredSubstrings = Array.from(
-        new Set([...config.FILTERED_SUBSTRINGS, ...config.USER_FILTERED_SUBSTRINGS])
-      );
+      // Check if the post content matches any predefined substrings
       const isSpamBySubstring = filteredSubstrings.some((substring) =>
         joinedString.includes(substring)
       );
       const simHash = computeSimHash(joinedString);
-      const isSpamBySimHash = isSimilarToCachedMessages(simHash, messageCache);
+      const isSpamBySimHash = isSimilarToCachedMessages(simHash, messageCache, config.MAX_HAMMING_DISTANCE);
       if (isSpamBySubstring || isSpamBySimHash) {
         console.log('Hiding spam post:', joinedString);
         table.style.visibility = 'hidden';
@@ -155,6 +149,6 @@
 
   // Function to allow users to update userFilteredSubstrings
   function addUserFilteredSubstring(substring) {
-    config.USER_FILTERED_SUBSTRINGS.add(substring);
+    filteredSubstrings.add(substring);
   }
 })();
