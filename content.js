@@ -55,7 +55,7 @@
     }));
 
     // Create a Web Worker for the filterWorker script
-    const filterWorker = new Worker(chrome.runtime.getURL('filterWorker.js'));
+    const filterWorker = new Worker(chrome.runtime.getURL('workerLoader.js'));
 
     // Send data to the worker, including postData, config, and filteredSubstrings (converted to array)
     filterWorker.postMessage({
