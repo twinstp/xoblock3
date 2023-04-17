@@ -2,7 +2,7 @@
 importScripts('crypto-js.min.js');
 
 self.onmessage = (event) => {
-    const { postData, config, filteredSubstrings } = event.data;
+  const { postData, config, filteredSubstrings } = event.data;
     
     // Load the crypto-js library in the worker using the provided URL
     self.importScripts(cryptoJsUrl);
@@ -105,4 +105,4 @@ self.onmessage = (event) => {
 
     // Send the filtered IDs back to the main script
     self.postMessage({ filteredIds });
-    };
+};

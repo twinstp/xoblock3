@@ -2,7 +2,7 @@
   'use strict';
 
   // Load the configuration from config.json
-  const config = await fetch('config.json').then((response) => response.json());
+  const config = await fetch(chrome.runtime.getURL('config.json')).then((response) => response.json());
   console.log('Loaded config:', config);
 
   // Set for storing filtered substrings
@@ -16,8 +16,8 @@
       id: table.id // Identify the table element
     }));
 
-    // Create a Web Worker for filtering using a relative path
-    const filterWorker = new Worker('filterWorker.js');
+    // Create a Web Worker for filtering
+    const filterWorker = new Worker(chrome.runtime.getURL('filterWorker.js'));
 
     // Send data to the worker, including postData and filteredSubstrings
     filterWorker.postMessage({ postData, config, filteredSubstrings });
