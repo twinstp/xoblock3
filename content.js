@@ -1,3 +1,4 @@
+// content.js
 (async function () {
   'use strict';
 
@@ -8,6 +9,8 @@
   // Log when the script has loaded successfully
   cryptoJsScript.onload = () => {
     console.log('crypto-js script loaded successfully');
+    // Invoke the filterSpamPosts function to start filtering after script loads
+    filterSpamPosts();
   };
 
   // Log and handle errors if the script fails to load
@@ -17,9 +20,6 @@
 
   document.head.appendChild(cryptoJsScript);
 
-  // Wait for the script to load before proceeding
-  await new Promise((resolve) => (cryptoJsScript.onload = resolve));
-
   // Load the configuration from config.json
   const config = await fetch(chrome.runtime.getURL('config.json')).then((response) => response.json());
   console.log('Loaded config:', config);
@@ -27,124 +27,49 @@
   // Set for storing filtered substrings
   const filteredSubstrings = new Set([...config.FILTERED_SUBSTRINGS]);
 
-  // Utility function to tokenize a message
-  function tokenize(message) {
-    return message.split(/\s+/);
-  }
-
-  // Utility function to compute SimHash of a message
-  function computeSimHash(message) {
-    const tokenWeights = new Map();
-    const tokens = tokenize(message);
-    tokens.forEach((token) => {
-      const weight = tokenWeights.get(token) || 0;
-      tokenWeights.set(token, weight + 1);
-    });
-
-    const fingerprintBits = 64;
-    const v = new Int32Array(fingerprintBits);
-    for (const [token, weight] of tokenWeights.entries()) {
-      const hash = BigInt('0x' + CryptoJS.SHA1(token).toString());
-      for (let i = 0; i < fingerprintBits; ++i) {
-        v[i] += (hash >> BigInt(i)) & BigInt(1) ? weight : -weight;
-      }
-    }
-
-    let simHash = BigInt(0);
-    for (let i = 0; i < fingerprintBits; ++i) {
-      if (v[i] > 0) {
-        simHash |= BigInt(1) << BigInt(i);
-      }
-    }
-    return simHash;
-  }
-
-  // Utility function to calculate Hamming distance between two SimHashes
-  function hammingDistance(hash1, hash2) {
-    const x = hash1 ^ hash2;
-    return x.toString(2).split('').filter((bit) => bit === '1').length;
-  }
-
-  // Function to check if a message is similar to any in the cache
-  function isSimilarToCachedMessages(hash, messageCache, maxHammingDistance) {
-    return Array.from(messageCache.keys()).some(
-      (cachedHash) => hammingDistance(hash, cachedHash) <= maxHammingDistance
-    );
-  }
-
-  // Updated regular expression to match both http and https, as well as the surrounding parentheses
-  const extractTextRegex = /\(https?:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)\s*/;
-
-  // Updated function to extract text content from a post
-  function extractText(input) {
-    // Use the updated regular expression to remove the URL and keep only the text content
-    return input.replace(extractTextRegex, '').trim();
-  }
-
-  // Updated test for extractText function
-  console.log(
-    'Extract text test (https):',
-    extractText('(https://www.autoadmit.com/thread.php?thread_id=12345&forum_id=2#123) Some text') === 'Some text'
-  );
-
-  // Test for hammingDistance function
-  console.log('Hamming distance test:', hammingDistance(BigInt('0b1001'), BigInt('0b1100')) === 2);
-
   // Function to filter out spam posts from the current page view
   async function filterSpamPosts() {
-    const messageCache = new Map();
+    // Check if the crypto-js script has been successfully loaded
+    if (typeof CryptoJS === 'undefined') {
+      console.error('CryptoJS library not loaded. Cannot proceed with filtering.');
+      return;
+    }
+
     const messageTables = document.querySelectorAll("table[width='700']");
-    for (const table of messageTables) {
-      if (table.getAttribute('cellspacing')) {
-        continue;
-      }
-      const bodyElement = table.querySelector('table font');
-      if (!bodyElement) {
-        continue;
-      }
-      let authorDetected = false;
-      const bodyStrings = [];
-      for (const child of bodyElement.childNodes) {
-        const textContent = child.textContent?.trim();
-        if (textContent) {
-          if (!authorDetected) {
-            if (textContent.startsWith('Author:')) {
-              authorDetected = true;
-            }
-            continue;
-          }
-          bodyStrings.push(extractText(textContent));
-        }
-      }
-      const joinedString = bodyStrings.join('');
-      // Check if the post content matches any predefined substrings
-      // Convert the Set to an Array before using the some method
-      const isSpamBySubstring = [...filteredSubstrings].some((substring) =>
-        joinedString.includes(substring)
-      );
-      const simHash = computeSimHash(joinedString);
-      const isSpamBySimHash = isSimilarToCachedMessages(simHash, messageCache, config.MAX_HAMMING_DISTANCE);
-      if (isSpamBySubstring || isSpamBySimHash) {
-        console.log('Hiding spam post:', joinedString);
+    const postData = Array.from(messageTables).map(table => ({
+      content: table.innerText.trim(), // Extract and trim text content
+      id: table.id // Identify the table element
+    }));
+
+    // Create a Web Worker for filtering
+    const filterWorker = new Worker(chrome.runtime.getURL('filterWorker.js'));
+
+    // Send data to the worker, including postData, config, and filteredSubstrings
+    filterWorker.postMessage({ postData, config, filteredSubstrings });
+
+    // Receive filtered data from the worker
+    filterWorker.onmessage = (event) => {
+      const { filteredIds } = event.data;
+      filteredIds.forEach((id) => {
+        const table = document.getElementById(id);
         table.style.visibility = 'hidden';
         table.style.display = 'none';
-        continue;
-      }
-      // Update cache with the new hash, while storing only the hash, not the content
-      messageCache.set(simHash, 1);
-      // Remove the oldest entry if cache size exceeds the limit
-      if (messageCache.size > config.MAX_CACHE_SIZE) {
-        const oldestHash = messageCache.keys().next().value;
-        messageCache.delete(oldestHash);
-      }
-    }
-  }
+      });
+    };
 
-  // Invoke the filterSpamPosts function to start filtering
-  await filterSpamPosts();
+    // Log error if the worker encounters an error
+    filterWorker.onerror = (error) => {
+      console.error('Filter worker encountered an error:', error);
+    };
+  }
 
   // Function to allow users to update userFilteredSubstrings
   function addUserFilteredSubstring(substring) {
     filteredSubstrings.add(substring);
+    console.log(`Added user-defined substring to filter: "${substring}"`);
   }
+
+  // Test: Adding a user-defined substring to filter
+  addUserFilteredSubstring('test substring');
+  console.log('Current filtered substrings:', Array.from(filteredSubstrings));
 })();
