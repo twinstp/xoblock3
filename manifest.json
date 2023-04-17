@@ -20,13 +20,8 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": ["content.js"]
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["config.json", "crypto-js.min.js", "filterWorker.js"],
-      "matches": ["<all_urls>"]
+      "js": ["content.js"],
+      "web_accessible_resources": ["config.json", "crypto-js.min.js", "filterWorker.js"]
     }
   ]
 }
