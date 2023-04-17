@@ -1,7 +1,9 @@
-// filterWorker.js
+// Import the crypto-js library using a relative path
+importScripts('crypto-js.min.js');
+
 self.onmessage = (event) => {
-    const { postData, config, filteredSubstrings, cryptoJsUrl } = event.data;
-  
+    const { postData, config, filteredSubstrings } = event.data;
+    
     // Load the crypto-js library in the worker using the provided URL
     self.importScripts(cryptoJsUrl);
   
