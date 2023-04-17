@@ -25,7 +25,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["config.json", "crypto-js.min.js", "filterWorker.js"],
+      "resources": ["config.json"],
       "matches": ["<all_urls>"]
     }
   ]
