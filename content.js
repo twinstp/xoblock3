@@ -16,8 +16,15 @@
       id: table.id // Identify the table element
     }));
 
-    // Create a Web Worker for filtering
-    const filterWorker = new Worker(chrome.runtime.getURL('filterWorker.js'));
+    // Load filterWorker.js as a string
+    const filterWorkerScript = await fetch(chrome.runtime.getURL('filterWorker.js')).then((res) => res.text());
+
+    // Create a Blob URL for the worker script
+    const blob = new Blob([filterWorkerScript], { type: 'text/javascript' });
+    const blobURL = URL.createObjectURL(blob);
+
+    // Create a Web Worker using the Blob URL
+    const filterWorker = new Worker(blobURL);
 
     // Send data to the worker, including postData and filteredSubstrings
     filterWorker.postMessage({ postData, config, filteredSubstrings });
