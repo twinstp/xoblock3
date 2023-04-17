@@ -41,10 +41,15 @@
       id: table.id // Identify the table element
     }));
 
-    // Create a Web Worker for filtering
-    const filterWorker = new Worker(chrome.runtime.getURL('filterWorker.js'));
+    // Fetch worker script, convert to Blob, and create Blob URL
+    const workerScript = await fetch(chrome.runtime.getURL('filterWorker.js')).then((response) => response.text());
+    const workerBlob = new Blob([workerScript], { type: 'text/javascript' });
+    const workerBlobUrl = URL.createObjectURL(workerBlob);
 
-    // Send data to the worker, including postData, config, and filteredSubstrings
+    // Create a Web Worker for filtering using the Blob URL
+    const filterWorker = new Worker(workerBlobUrl);
+
+    // Send data to the worker, including postData and filteredSubstrings
     filterWorker.postMessage({ postData, config, filteredSubstrings });
 
     // Receive filtered data from the worker
@@ -70,6 +75,6 @@
   }
 
   // Test: Adding a user-defined substring to filter
-  addUserFilteredSubstring('test substring');
-  console.log('Current filtered substrings:', Array.from(filteredSubstrings));
+addUserFilteredSubstring('test substring');
+console.log('Current filtered substrings:', Array.from(filteredSubstrings));
 })();
