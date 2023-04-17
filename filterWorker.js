@@ -1,10 +1,7 @@
 // filterWorker.js
 self.onmessage = (event) => {
     const { postData, config, filteredSubstrings } = event.data;
-      
-    // Load the crypto-js library in the worker using the provided URL
-    self.importScripts(cryptoJsUrl);
-  
+    
     // Utility function to tokenize a message
     function tokenize(message) {
       return message.split(/\s+/);
@@ -12,7 +9,7 @@ self.onmessage = (event) => {
   
     // Utility function to compute SimHash of a message
     function computeSimHash(message) {
-      if (typeof BigInt === 'undefined') {
+        if (typeof BigInt === 'undefined') {
         // BigInt is not supported, handle accordingly
         return null;
       }
@@ -53,11 +50,11 @@ self.onmessage = (event) => {
       return x.toString(2).split('').filter((bit) => bit === '1').length;
     }
   
-    // Initialize messageCache and cacheIndex
-    const messageCache = [];
-    let cacheIndex = 0;
-    const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500; // Set default value if not provided
-    const filteredIds = [];
+  // Initialize messageCache and cacheIndex
+  const messageCache = [];
+  let cacheIndex = 0;
+  const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500;
+  const filteredIds = [];
   
     // Filter logic (similar to the original filterSpamPosts function)
     postData.forEach((post) => {
@@ -101,6 +98,6 @@ self.onmessage = (event) => {
       }
     });
 
-    // Send the filtered IDs back to the main script
-    self.postMessage({ filteredIds });
+  // Send the filtered IDs back to the main script
+  self.postMessage({ filteredIds });
 };
