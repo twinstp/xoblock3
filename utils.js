@@ -1,8 +1,6 @@
 // utils.js
 // Utility functions extracted from the original content.js
 
-import CryptoJS from './service-worker-utils.js';
-
 // Define initial configuration
 const initialConfig = {
   MAX_CACHE_SIZE: 500,
