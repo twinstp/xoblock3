@@ -1,6 +1,9 @@
 // utils.js
 // Utility functions extracted from the original content.js
 
+// Load CryptoJS from the window object
+const CryptoJS = window.CryptoJS;
+
 // Define initial configuration
 const initialConfig = {
   MAX_CACHE_SIZE: 500,
@@ -10,17 +13,16 @@ const initialConfig = {
 
 // Utility function to load the configuration from chrome.storage.local
 export async function loadConfig() {
-  // Load the configuration from chrome.storage.local, or use initialConfig as a fallback
-  let config = initialConfig;
-  try {
-    const storedConfig = await new Promise((resolve) => chrome.storage.local.get('config', resolve));
-    config = storedConfig.config || initialConfig;
-  } catch (error) {
-    console.warn('Failed to load configuration from storage. Using initial configuration.');
-  }
-  return config;
+    let config = initialConfig;
+    try {
+      const storedConfig = await chrome.storage.local.get('config');
+      config = storedConfig.config || initialConfig;
+    } catch (error) {
+      console.warn('Failed to load configuration from storage. Using initial configuration.');
+    }
+    return config;
 }
-
+  
 // Utility function to tokenize a message
 function tokenize(message) {
   return message.split(/\s+/);
@@ -55,10 +57,15 @@ export function computeSimHash(message) {
 
 // Utility function to calculate Hamming distance between two SimHashes
 export function hammingDistance(hash1, hash2) {
-  const x = hash1 ^ hash2;
-  return x.toString(2).split('').filter((bit) => bit === '1').length;
-}
-
+    let x = hash1 ^ hash2;
+    let count = 0;
+    while (x) {
+      count += x & BigInt(1);
+      x >>= BigInt(1);
+    }
+    return count;
+  }
+  
 // Filter logic (similar to the original filterSpamPosts function)
 export function filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById) {
     const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500;
@@ -66,13 +73,13 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
   
     // Select both posts and table of contents entries
     const messageTables = document.querySelectorAll("table[width='700'], table.threadlist tr");
-    
+  
     const postData = Array.from(messageTables)
-      .filter(table => table.id || table.getAttribute('name')) // Filter out elements without an 'id' or 'name'
-      .map(table => ({
-        content: table.innerText.trim(),
-        id: table.id || table.getAttribute('name') // Use 'name' attribute for table of contents entries
-      }));
+    .filter(table => table.id || table.getAttribute('name'))
+    .map(table => ({
+      content: table.textContent.trim(),
+      id: table.id || table.getAttribute('name')
+    }));
   
     postData.forEach((post) => {
       const { content, id } = post;
@@ -83,33 +90,32 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
         return;
       }
   
-      // Convert filteredSubstrings Set to Array and check if the post content matches any predefined substrings
+      // Convert filteredSubstrings Set to Array and check if the post content matches any predefined substrstrings
       if ([...filteredSubstrings].some((substring) => joinedString.includes(substring))) {
-        hideElementById(id); // Hide the element by its ID
-        return; // Exit early from the loop
-      }
+          hideElementById(id); // Hide the element by its ID
+          return; // Exit early from the loop
+        }
   
-      // Compute the SimHash of the post content
-      const simHash = computeSimHash(joinedString);
-      if (!simHash) {
-        // If simHash is null (BigInt not supported), skip this iteration
-        return;
-      }
-      // Check if the SimHash is similar to any cached SimHashes based on a threshold MAX_HAMMING_DISTANCE
-      const isSpamBySimHash = messageCache.some(
-        (cachedHash) => hammingDistance(simHash, cachedHash) <= config.MAX_HAMMING_DISTANCE
-      );
-      if (isSpamBySimHash) {
-        hideElementById(id); // Hide the element by its ID
-      } else {
-        // Update messageCache with the new SimHash
-        messageCache[cacheIndex] = simHash;
-        cacheIndex = (cacheIndex + 1) % MAX_CACHE_SIZE;
-      }
-    });
-  }
-  
-  // Utility function to hide elements by ID
+        // Compute the SimHash of the post content
+        const simHash = computeSimHash(joinedString);
+        if (!simHash) {
+          // If simHash is null (BigInt not supported), skip this iteration
+          return;
+        }
+        // Check if the SimHash is similar to any cached SimHashes based on a threshold MAX_HAMMING_DISTANCE
+        const isSpamBySimHash = messageCache.some(
+          (cachedHash) => hammingDistance(simHash, cachedHash) <= config.MAX_HAMMING_DISTANCE
+        );
+        if (isSpamBySimHash) {
+          hideElementById(id); // Hide the element by its ID
+        } else {
+          // Update messageCache with the new SimHash
+          messageCache[cacheIndex] = simHash;
+          cacheIndex = (cacheIndex + 1) % MAX_CACHE_SIZE;
+        }
+      });
+    }
+      // Utility function to hide elements by ID
   export function hideElementById(id) {
     const element = document.getElementById(id) || document.querySelector(`[name='${id}']`);
     if (element) {
@@ -130,11 +136,10 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
       console.log(`Added user-defined substring "${substring}" to the filter list.`);
     });
   }
-// This section includes the registration of listeners for the chrome extension
-
-// Register a listener for the "addUserFilteredSubstring" message
-// This allows the background or options page to request the addition of a new substring to the filter
-export function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
+  
+  // Register a listener for the "addUserFilteredSubstring" message
+  // This allows the background or options page to request the addition of a new substring to the filter
+  export function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'addUserFilteredSubstring' && message.substring) {
         addUserFilteredSubstring(message.substring, config, filteredSubstrings);
@@ -163,4 +168,4 @@ export function registerAddUserFilteredSubstringListener(config, filteredSubstri
     window.addEventListener('error', (error) => {
       console.error('Error in extension:', error.message);
     });
-  }  
+  }

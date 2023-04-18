@@ -1,10 +1,11 @@
 // foreground.js
-  // Import utility functions from utils.js
-  import { loadConfig, filterSpamPosts, addUserFilteredSubstring } from './utils.js';
-
 (async function () {
   'use strict';
-    // Load the configuration and start filtering
+  
+  // Access the utility functions from the window object
+  const { loadConfig, filterSpamPosts, addUserFilteredSubstring } = window;
+
+  // Load the configuration and start filtering
   const config = await loadConfig();
   filterSpamPosts(config);
 
@@ -29,4 +30,4 @@
   }
 })().catch((error) => {
   console.error('Error in extension:', error.message);
-});
+})();
