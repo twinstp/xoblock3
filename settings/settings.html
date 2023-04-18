@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="stylesheet" href="settings.css">
   <title>Spam Filter Extension Options</title>
 </head>
 <body>
@@ -8,12 +11,16 @@
   <form>
     <label for="max-cache-size">Max Cache Size:</label>
     <input type="number" id="max-cache-size" name="max-cache-size"><br><br>
+    
     <label for="max-hamming-distance">Max Hamming Distance:</label>
     <input type="number" id="max-hamming-distance" name="max-hamming-distance"><br><br>
+    
     <label for="filtered-substrings">Filtered Substrings (separated by commas):</label><br>
     <textarea id="filtered-substrings" name="filtered-substrings" rows="4" cols="50"></textarea><br><br>
+    
     <button id="save-config" type="button">Save Configuration</button>
   </form>
-  <script src="options.js"></script>
+  
+  <script src="settings.js"></script>
 </body>
 </html>

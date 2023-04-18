@@ -1,21 +1,37 @@
 {
   "manifest_version": 3,
-  "name": "Filter XOXO_TwinstpVer",
+  "name": "FilterXOXO_TwinstpVer",
   "description": "A Chrome extension that filters xoxo posts.",
   "version": "1.0",
-  "permissions": [
-    "storage",
-    "scripting",
-    "activeTab"
+  "icons": {
+    "16": "logo/logo-16.png",
+    "48": "logo/logo-48.png",
+    "128": "logo/logo-128.png"
+  },
+  "options_page": "settings/settings.html",
+  "action": {
+    "default_title": "FilterXOXO_TwinstpVer",
+    "default_popup": "popup/popup.html"
+  },
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": [
+    "https://www.xoxohth.com/*",
+    "https://xoxohth.com/*",
+    "http://xoxohth.com/*",
+    "http://www.xoxohth.com/*",
+    "https://*.xoxohth.com/*",
+    "http://*.xoxohth.com/*",
+    "https://www.autoadmit.com/*",
+    "https://autoadmit.com/*",
+    "http://autoadmit.com/*",
+    "http://www.autoadmit.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
-  },
-  "action": {
-    "default_popup": "options.html"
+    "service_worker": "service-worker.js"
   },
   "content_scripts": [
     {
+      "js": ["service-worker-utils.js", "utils.js", "foreground.js"],
       "matches": [
         "https://www.xoxohth.com/*",
         "https://xoxohth.com/*",
@@ -27,9 +43,7 @@
         "https://autoadmit.com/*",
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
-      ],
-      "js": ["crypto-js.min.js", "content.js"]
+      ]
     }
-  ],
-  "options_page": "options.html"
+  ]
 }
