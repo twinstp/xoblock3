@@ -12,7 +12,7 @@ const initialConfig = {
 };
 
 // Utility function to load the configuration from chrome.storage.local
-export async function loadConfig() {
+async function loadConfig() {
     let config = initialConfig;
     try {
       const storedConfig = await chrome.storage.local.get('config');
