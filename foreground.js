@@ -1,13 +1,11 @@
 // foreground.js
 (async function () {
-  'use strict';
-  
-  // Access the utility functions from the window object
-  const { loadConfig, filterSpamPosts, addUserFilteredSubstring } = window;
+  try {
+    'use strict';
 
-  // Load the configuration and start filtering
-  const config = await loadConfig();
-  filterSpamPosts(config);
+    // Load the configuration and start filtering
+    const config = await loadConfig();
+    filterSpamPosts(config);
 
   // Register a listener for the "addUserFilteredSubstring" message
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -29,6 +27,8 @@ if (chrome.storage) {
   console.warn('chrome.storage is not available.');
 }
 
-})().catch((error) => {
+} catch (error) {
+  // Handle any errors that occur in the extension
   console.error('Error in extension:', error.message);
+}
 })();
