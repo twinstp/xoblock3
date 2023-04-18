@@ -29,7 +29,7 @@ function tokenize(message) {
 }
 
 // Utility function to compute SimHash of a message
-export function computeSimHash(message) {
+function computeSimHash(message) {
   const tokenWeights = new Map();
   const tokens = tokenize(message);
   tokens.forEach((token) => {
@@ -56,7 +56,7 @@ export function computeSimHash(message) {
 }
 
 // Utility function to calculate Hamming distance between two SimHashes
-export function hammingDistance(hash1, hash2) {
+function hammingDistance(hash1, hash2) {
     let x = hash1 ^ hash2;
     let count = 0;
     while (x) {
@@ -67,7 +67,7 @@ export function hammingDistance(hash1, hash2) {
   }
   
 // Filter logic (similar to the original filterSpamPosts function)
-export function filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById) {
+function filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById) {
     const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500;
     let cacheIndex = 0;
   
@@ -116,7 +116,7 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
       });
     }
       // Utility function to hide elements by ID
-  export function hideElementById(id) {
+  function hideElementById(id) {
     const element = document.getElementById(id) || document.querySelector(`[name='${id}']`);
     if (element) {
       element.style.visibility = 'hidden';
@@ -128,7 +128,7 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
   }
   
   // Function to allow users to update userFilteredSubstrings
-  export function addUserFilteredSubstring(substring, config, filteredSubstrings) {
+  function addUserFilteredSubstring(substring, config, filteredSubstrings) {
     filteredSubstrings.add(substring);
     // Update the configuration in storage
     config.FILTERED_SUBSTRINGS = [...filteredSubstrings];
@@ -139,7 +139,7 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
   
   // Register a listener for the "addUserFilteredSubstring" message
   // This allows the background or options page to request the addition of a new substring to the filter
-  export function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
+  function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'addUserFilteredSubstring' && message.substring) {
         addUserFilteredSubstring(message.substring, config, filteredSubstrings);
@@ -149,7 +149,7 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
   }
   
   // Invoke the filterSpamPosts function again to apply changes if the configuration is updated
-  export function registerConfigChangeListener(config, filteredSubstrings, messageCache, hideElementById) {
+  function registerConfigChangeListener(config, filteredSubstrings, messageCache, hideElementById) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.config) {
         // Update the local configuration and filtered substrings
@@ -164,7 +164,7 @@ export function filterSpamPosts(config, filteredSubstrings, messageCache, hideEl
   }
   
   // Catch any errors that occur in the extension
-  export function catchErrors() {
+  function catchErrors() {
     window.addEventListener('error', (error) => {
       console.error('Error in extension:', error.message);
     });
