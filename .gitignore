@@ -1,2 +1,6 @@
 jsconfig.json
 *.fish
+*.workspace
+.vscode/launch.json
+node_modules/*
+package-lock.json
