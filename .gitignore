@@ -4,3 +4,5 @@ jsconfig.json
 .vscode/launch.json
 node_modules/*
 package-lock.json
+/.trunk
+xoblock3.code-workspace
