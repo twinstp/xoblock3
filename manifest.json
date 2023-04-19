@@ -13,9 +13,37 @@
     "default_title": "FilterXOXO_TwinstpVer",
     "default_popup": "popup/popup.html"
   },
-  "permissions": ["scripting", "activeTab", "storage", "tabs"],
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": [
+    "https://www.xoxohth.com/*",
+    "https://xoxohth.com/*",
+    "http://xoxohth.com/*",
+    "http://www.xoxohth.com/*",
+    "https://*.xoxohth.com/*",
+    "http://*.xoxohth.com/*",
+    "https://www.autoadmit.com/*",
+    "https://autoadmit.com/*",
+    "http://autoadmit.com/*",
+    "http://www.autoadmit.com/*"
+  ],
   "background": {
     "service_worker": "service-worker.js"
   },
-  "background_page": "background.html"
+  "content_scripts": [
+    {
+      "js": ["service-worker-utils.js", "utils.js", "foreground.js"],
+      "matches": [
+        "https://www.xoxohth.com/*",
+        "https://xoxohth.com/*",
+        "http://xoxohth.com/*",
+        "http://www.xoxohth.com/*",
+        "http://*.xoxohth.com/*",
+        "https://*.xoxohth.com/*",
+        "https://www.autoadmit.com/*",
+        "https://autoadmit.com/*",
+        "http://autoadmit.com/*",
+        "http://www.autoadmit.com/*"
+      ]
+    }
+  ]
 }
