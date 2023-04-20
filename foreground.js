@@ -1,4 +1,3 @@
-// foreground.js
 'use strict';
 async function contentScript() {
   console.log('Content script loaded.');
