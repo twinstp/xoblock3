@@ -14,8 +14,6 @@
     "default_popup": "popup/popup.html"
   },
   "permissions": [
-    "scripting",
-    "activeTab",
     "storage"
   ],
   "host_permissions": [
@@ -30,13 +28,6 @@
     "http://autoadmit.com/*",
     "http://www.autoadmit.com/*"
   ],
-  "web_accessible_resources": [
-    "popup/popup.html",
-    "settings/settings.html"
-  ],
-  "background": {
-    "service_worker": "service-worker.js"
-  },
   "content_scripts": [
     {
       "matches": [
@@ -51,11 +42,10 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": [
-        "utils.js",
-        "foreground.js"
-      ],
-      "run_at": "document_end"
+      "js": ["utils.js", "foreground.js"]
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  }
 }
