@@ -6,3 +6,4 @@ node_modules/*
 package-lock.json
 /.trunk
 xoblock3.code-workspace
+.vscode/settings.json
