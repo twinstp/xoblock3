@@ -31,7 +31,6 @@
   },
   "content_scripts": [
     {
-      "js": ["utils.js", "foreground.js"],
       "matches": [
         "https://www.xoxohth.com/*",
         "https://xoxohth.com/*",
@@ -43,7 +42,8 @@
         "https://autoadmit.com/*",
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
-      ]
+      ],
+      "js": ["utils.js", "foreground.js"]
     }
   ]
 }

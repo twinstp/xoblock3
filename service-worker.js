@@ -1,3 +1,5 @@
+importScripts('utils.js');
+
 self.addEventListener('message', async (event) => {
   try {
     const request = event.data;
@@ -20,14 +22,6 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-async function computeSHA1(token) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(token);
-  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
 async function testComputeSHA1() {
   const token = 'test_token';
   const expectedHash = '94ee059335e587e501cc4bf90613e0814f00a7b6';
@@ -39,5 +33,4 @@ async function testComputeSHA1() {
   }
 }
 
-// Run the test
 testComputeSHA1();
