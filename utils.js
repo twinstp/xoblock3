@@ -1,171 +1,160 @@
-// utils.js
-// Utility functions extracted from the original content.js
-
-// Load CryptoJS from the window object
-const CryptoJS = window.CryptoJS;
-
-// Define initial configuration
 const initialConfig = {
   MAX_CACHE_SIZE: 500,
   MAX_HAMMING_DISTANCE: 3,
-  FILTERED_SUBSTRINGS: []
+  FILTERED_SUBSTRINGS: new Set(),
 };
 
-// Utility function to load the configuration from chrome.storage.local
 async function loadConfig() {
-    let config = initialConfig;
-    try {
-      const storedConfig = await chrome.storage.local.get('config');
-      config = storedConfig.config || initialConfig;
-    } catch (error) {
-      console.warn('Failed to load configuration from storage. Using initial configuration.');
-    }
-    return config;
-}
-  
-// Utility function to tokenize a message
-function tokenize(message) {
-  return message.split(/\s+/);
+  let config = initialConfig;
+  try {
+    const storedConfig = await chrome.storage.local.get('config');
+    config = storedConfig.config || initialConfig;
+    config.FILTERED_SUBSTRINGS = new Set(config.FILTERED_SUBSTRINGS);
+  } catch (error) {
+    console.warn('Failed to load configuration from storage. Using initial configuration.');
+  }
+  return config;
 }
 
-// Utility function to compute SimHash of a message
+async function computeSHA1(message) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 function computeSimHash(message) {
   const tokenWeights = new Map();
-  const tokens = tokenize(message);
+  const tokens = message.split(/\s+/);
   tokens.forEach((token) => {
     const weight = (tokenWeights.get(token) || 0) + 1;
     tokenWeights.set(token, weight);
   });
-
-  const fingerprintBits = 64;
+  const fingerprintBits = 32;
   const v = new Int32Array(fingerprintBits);
+  const promises = [];
   for (const [token, weight] of tokenWeights.entries()) {
-    const hash = BigInt('0x' + CryptoJS.SHA1(token).toString());
+    promises.push(computeSHA1(token).then(hash => {
+      const hashInt = parseInt(hash, 16);
+      for (let i = 0; i < fingerprintBits; ++i) {
+        v[i] += (hashInt >> i) & 1 ? weight : -weight;
+      }
+    }));
+  }
+  return Promise.all(promises).then(() => {
+    let simHash = 0;
     for (let i = 0; i < fingerprintBits; ++i) {
-      v[i] += (hash >> BigInt(i)) & BigInt(1) ? weight : -weight;
+      if (v[i] > 0) {
+        simHash |= 1 << i;
+      }
     }
-  }
-
-  let simHash = BigInt(0);
-  for (let i = 0; i < fingerprintBits; ++i) {
-    if (v[i] > 0) {
-      simHash |= BigInt(1) << BigInt(i);
-    }
-  }
-  return simHash;
+    return simHash;
+  });
 }
 
-// Utility function to calculate Hamming distance between two SimHashes
 function hammingDistance(hash1, hash2) {
-    let x = hash1 ^ hash2;
-    let count = 0;
-    while (x) {
-      count += x & BigInt(1);
-      x >>= BigInt(1);
-    }
-    return count;
+  let xor = hash1 ^ hash2;
+  let distance = 0;
+  while (xor) {
+    distance += xor & 1;
+    xor >>= 1;
   }
-  
-// Filter logic (similar to the original filterSpamPosts function)
+  return distance;
+}
+
 function filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById) {
-    const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500;
-    let cacheIndex = 0;
-  
-    // Select both posts and table of contents entries
-    const messageTables = document.querySelectorAll("table[width='700'], table.threadlist tr");
-  
-    const postData = Array.from(messageTables)
-    .filter(table => table.id || table.getAttribute('name'))
-    .map(table => ({
-      content: table.textContent.trim(),
-      id: table.id || table.getAttribute('name')
+  const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500;
+  const messageTables = document.querySelectorAll("table[width='700'][id], table.threadlist tr[name]");
+  const simHashFrequencies = new Map();
+  const computePromises = [];
+  for (const table of messageTables) {
+    const content = table.textContent.trim();
+    const id = table.id || table.getAttribute('name');
+    if (content.length <= 250) continue;
+    if (config.FILTERED_SUBSTRINGS.has(content)) {
+      hideElementById(id);
+      continue;
+    }
+    computePromises.push(computeSimHash(content).then(simHash => {
+      if (!simHash) return;
+      const similarHash = [...messageCache.keys()].find(cachedHash =>
+        hammingDistance(simHash, cachedHash) <= config.MAX_HAMMING_DISTANCE
+      );
+      if (similarHash) {
+        hideElementById(id);
+        simHashFrequencies.set(similarHash, simHashFrequencies.get(similarHash) + 1);
+      } else {
+        messageCache.add(simHash);
+        simHashFrequencies.set(simHash, 1);
+      }
+      if (messageCache.size > MAX_CACHE_SIZE) {
+        const leastFrequentHash = [...simHashFrequencies.entries()].sort((a, b) => a[1] - b[1])[0][0];
+        messageCache.delete(leastFrequentHash);
+        simHashFrequencies.delete(leastFrequentHash);
+      }
     }));
-  
-    postData.forEach((post) => {
-      const { content, id } = post;
-      const joinedString = content.trim();
-  
-      // Ensure that only messages with more than 250 printable characters are filtered out
-      if (joinedString.length <= 250) {
-        return;
-      }
-  
-      // Convert filteredSubstrings Set to Array and check if the post content matches any predefined substrstrings
-      if ([...filteredSubstrings].some((substring) => joinedString.includes(substring))) {
-          hideElementById(id); // Hide the element by its ID
-          return; // Exit early from the loop
-        }
-  
-        // Compute the SimHash of the post content
-        const simHash = computeSimHash(joinedString);
-        if (!simHash) {
-          // If simHash is null (BigInt not supported), skip this iteration
-          return;
-        }
-        // Check if the SimHash is similar to any cached SimHashes based on a threshold MAX_HAMMING_DISTANCE
-        const isSpamBySimHash = messageCache.some(
-          (cachedHash) => hammingDistance(simHash, cachedHash) <= config.MAX_HAMMING_DISTANCE
-        );
-        if (isSpamBySimHash) {
-          hideElementById(id); // Hide the element by its ID
-        } else {
-          // Update messageCache with the new SimHash
-          messageCache[cacheIndex] = simHash;
-          cacheIndex = (cacheIndex + 1) % MAX_CACHE_SIZE;
-        }
-      });
+  }
+  return Promise.all(computePromises);
+}
+
+function hideElementById(id) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.style.display = 'none';
+  }
+}
+
+function addUserFilteredSubstring(substring, config) {
+  config.FILTERED_SUBSTRINGS.add(substring);
+  chrome.storage.local.set({
+    config: {
+      ...config,
+      FILTERED_SUBSTRINGS: [...config.FILTERED_SUBSTRINGS],
+    },
+  }, () => {
+    console.log(`Added user-defined substring "${substring}" to the filter list.`);
+  });
+}
+
+function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'addUserFilteredSubstring' && message.substring) {
+      addUserFilteredSubstring(message.substring, config);
+      sendResponse({ success: true });
     }
-      // Utility function to hide elements by ID
-  function hideElementById(id) {
-    const element = document.getElementById(id) || document.querySelector(`[name='${id}']`);
-    if (element) {
-      element.style.visibility = 'hidden';
-      element.style.display = 'none';
-      console.log(`Filtered element with ID ${id}.`);
-    } else {
-      console.warn(`Element with ID ${id} not found.`);
+  });
+}
+
+function registerConfigChangeListener(config, filteredSubstrings, messageCache, hideElementById) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.config) {
+      const newConfig = changes.config.newValue;
+      Object.assign(config, newConfig);
+      filteredSubstrings.clear();
+      newConfig.FILTERED_SUBSTRINGS.forEach((substring) => filteredSubstrings.add(substring));
+      console.log('Updated configuration from storage:', newConfig);
+      filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById);
     }
+  });
+}
+
+function catchErrors() {
+  window.addEventListener('error', (error) => {
+    console.error('Error in extension:', error.message);
+  });
+}
+
+function testHammingDistance() {
+  const hash1 = 0b11010101;
+  const hash2 = 0b10101010;
+  const expectedDistance = 5;
+  const computedDistance = hammingDistance(hash1, hash2);
+  if (computedDistance === expectedDistance) {
+    console.log('hammingDistance test passed');
+  } else {
+    console.error(`hammingDistance test failed: expected ${expectedDistance}, got ${computedDistance}`);
   }
-  
-  // Function to allow users to update userFilteredSubstrings
-  function addUserFilteredSubstring(substring, config, filteredSubstrings) {
-    filteredSubstrings.add(substring);
-    // Update the configuration in storage
-    config.FILTERED_SUBSTRINGS = [...filteredSubstrings];
-    chrome.storage.local.set({ config }, () => {
-      console.log(`Added user-defined substring "${substring}" to the filter list.`);
-    });
-  }
-  
-  // Register a listener for the "addUserFilteredSubstring" message
-  // This allows the background or options page to request the addition of a new substring to the filter
-  function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === 'addUserFilteredSubstring' && message.substring) {
-        addUserFilteredSubstring(message.substring, config, filteredSubstrings);
-        sendResponse({ success: true });
-      }
-    });
-  }
-  
-  // Invoke the filterSpamPosts function again to apply changes if the configuration is updated
-  function registerConfigChangeListener(config, filteredSubstrings, messageCache, hideElementById) {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === 'local' && changes.config) {
-        // Update the local configuration and filtered substrings
-        const newConfig = changes.config.newValue;
-        Object.assign(config, newConfig);
-        filteredSubstrings.clear();
-        newConfig.FILTERED_SUBSTRINGS.forEach((substring) => filteredSubstrings.add(substring));
-        // Re-run the filter
-        filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById);
-      }
-    });
-  }
-  
-  // Catch any errors that occur in the extension
-  function catchErrors() {
-    window.addEventListener('error', (error) => {
-      console.error('Error in extension:', error.message);
-    });
-  }
+}
+
+testHammingDistance();
