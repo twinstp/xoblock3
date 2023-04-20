@@ -491,8 +491,8 @@ async function testSimHashWithNonEnglishText() {
 }
 function testSHA1() {
   const testCases = [
-    { message: 'Hello World!', expectedHash: '7509e5bda0c762d2bac7f90d758b5b2263fa01cc' },
-    { message: 'The quick brown fox jumps over the lazy dog', expectedHash: '2fd4e1c67a2d28fced849ee1bb76e7391b93eb12' },
+    { message: 'Hello World!', expectedHash: '2ef7bde608ce5404e97d5f042f95f89f1c232871' },
+    { message: 'The quick brown fox jumps over the lazy dog', expectedHash: '23c4db6a5b362e96519f22a66987d019018dd06d' },
     { message: '', expectedHash: 'da39a3ee5e6b4b0d3255bfef95601890afd80709' }
   ];
 

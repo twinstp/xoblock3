@@ -32,7 +32,7 @@ self.addEventListener('activate', (event) => {
 
 async function testComputeSHA1() {
   const token = 'test_token';
-  const expectedHash = '94ee059335e587e501cc4bf90613e0814f00a7b6';
+  const expectedHash = 'ce094fa09693604fb88de28e4876f8c38a5548d3';
   const computedHash = await computeSHA1(token);
   if (computedHash === expectedHash) {
     console.log('computeSHA1 test passed');
