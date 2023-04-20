@@ -54,7 +54,7 @@
       "js": [
         "utils.js",
         "foreground.js"
-      ]
+      ],
+      "run_at": "document_end"
     }
   ]
-}
