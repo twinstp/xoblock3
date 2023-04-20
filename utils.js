@@ -72,6 +72,17 @@ class Trie {
     }
     return current.isEndOfWord;
   }
+  startsWith(prefix) {
+    let current = this.root;
+    for (let i = 0; i < prefix.length; i++) {
+      const ch = prefix[i];
+      if (!current.children[ch]) {
+        return false;
+      }
+      current = current.children[ch];
+    }
+    return true;
+  }
 
   _splitPrefix(str1, str2) {
     let i = 0;
@@ -171,6 +182,13 @@ function hammingDistance(hash1, hash2) {
   return distance;
 }
 
+// Statistics object to keep track of various metrics
+const stats = {
+  spamPostsFiltered: 0,
+  cacheSize: 0,
+  cacheEvictions: 0,
+};
+
 // Extract text content from HTML table element
 function extractPostText(table) {
   const bodyElement = table.querySelector('table font');
@@ -180,46 +198,76 @@ function extractPostText(table) {
 // Updated filterSpamPosts function using Trie and precomputedSimHashes
 async function filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById) {
   const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500;
-  const messageTables = document.querySelectorAll("table[width='700'][id], table.threadlist tr[name]");
+  const messageTables = document.querySelectorAll(
+    "table[width='700'][id], table.threadlist tr[name]"
+  );
   const simHashFrequencies = new Map();
   const computePromises = [];
+
   for (const table of messageTables) {
     const content = extractPostText(table);
     const id = table.id || table.getAttribute('name');
 
-    // Ignore short posts
-    if (content.length <= 250) continue;
+    // Skip posts with short or empty content
+    if (content.length <= 250) {
+      continue;
+    }
+
+    // Check for filtered substrings
+    let substringFound = false;
     for (const substring of filteredSubstrings) {
-      if (trie.search(substring)) { // Remove redundant use of content.includes
+      if (content.includes(substring)) {
         hideElementById(id);
-        continue;
+        stats.spamPostsFiltered++;
+        substringFound = true;
+        break;
       }
     }
 
-    // Compute SimHash and compare with precomputedSimHashes
-    computePromises.push(computeSimHash(content).then(simHash => {
-      if (!simHash) return;
-      for (const precomputedSimHash of precomputedSimHashes) {
-        if (hammingDistance(simHash, precomputedSimHash) <= config.MAX_HAMMING_DISTANCE) {
-          hideElementById(id);
-          // Update simHashFrequencies
-          simHashFrequencies.set(precomputedSimHash, (simHashFrequencies.get(precomputedSimHash) || 0) + 1);
-          break;
-        }
-      }
-      // Add new simHash to messageCache and simHashFrequencies
-      messageCache.add(simHash);
-      simHashFrequencies.set(simHash, 1);
+    // Skip further checks if substring found
+    if (substringFound) {
+      continue;
+    }
 
-      // Prune least frequent hash if cache size exceeds MAX_CACHE_SIZE
-      if (messageCache.size > MAX_CACHE_SIZE) {
-        const leastFrequentHash = [...simHashFrequencies.entries()].sort((a, b) => a[1] - b[1])[0][0];
-        messageCache.delete(leastFrequentHash);
-        simHashFrequencies.delete(leastFrequentHash);
-      }
-    }));
+    // Compute SimHash and check for spam
+    computePromises.push(
+      computeSimHash(content).then((simHash) => {
+        if (!simHash) {
+          return;
+        }
+
+        // Compare with message cache simHashes
+        for (const precomputedSimHash of messageCache) {
+          if (hammingDistance(simHash, precomputedSimHash) <= config.MAX_HAMMING_DISTANCE) {
+            hideElementById(id);
+            stats.spamPostsFiltered++;
+            simHashFrequencies.set(precomputedSimHash, (simHashFrequencies.get(precomputedSimHash) || 0) + 1);
+            return;
+          }
+        }
+
+        // Add simHash to cache
+        messageCache.add(simHash);
+        simHashFrequencies.set(simHash, 1);
+        stats.cacheSize = messageCache.size;
+
+        // Evict least frequent simHash if cache exceeds limit
+        if (messageCache.size > MAX_CACHE_SIZE) {
+          const leastFrequentHash = [...simHashFrequencies.entries()]
+            .sort((a, b) => a[1] - b[1])[0][0];
+          messageCache.delete(leastFrequentHash);
+          simHashFrequencies.delete(leastFrequentHash);
+          stats.cacheEvictions++;
+        }
+      })
+    );
   }
+
+  // Wait for all SimHash computations to complete
   await Promise.all(computePromises);
+
+  // Log statistics
+  console.log('Spam Filter Statistics:', stats);
 }
 
 // Hide HTML element by ID
@@ -241,12 +289,16 @@ function addUserFilteredSubstring(substring, config) {
   );
 }
 
-// Register listener for adding user-defined substring
 function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'addUserFilteredSubstring' && message.substring) {
       addUserFilteredSubstring(message.substring, config);
       sendResponse({ success: true });
+      return new Promise((resolve) => {
+        // Perform any additional asynchronous operations here
+        // Call resolve() when done
+        resolve();
+      });
     }
   });
 }
@@ -285,21 +337,20 @@ function testHammingDistance() {
   }
 }
 
-// Test function for simhash and filtering
 async function testSimHashAndFiltering() {
   const sampleText = "It's not a dysphoria. I see it in the positive way of working toward something, rather than away from something.";
   const computedSimHash = await computeSimHash(sampleText);
   const config = await loadConfig();
-  const isFiltered = [...config.FILTERED_SUBSTRINGS].some(substring => {
-    return hammingDistance(computedSimHash, BigInt(computeSimHash(substring))) <= config.MAX_HAMMING_DISTANCE;
-  });
+  const isFiltered = await Promise.all([...config.FILTERED_SUBSTRINGS].map(async substring => {
+    const precomputedSimHash = await computeSimHash(substring);
+    return hammingDistance(computedSimHash, BigInt(precomputedSimHash)) <= config.MAX_HAMMING_DISTANCE;
+  }));
   if (isFiltered) {
     console.log('testSimHashAndFiltering passed');
   } else {
     console.error('testSimHashAndFiltering failed');
   }
 }
-// Implement additional tests
 function testFilterShortOrEmptyPosts() {
   // Test the behavior with very short or empty posts
   // Ensure that empty posts are never filtered
@@ -462,15 +513,85 @@ function testSHA1() {
     console.error('Some SHA1 tests failed');
   }
 }
+function testUserDefinedSubstringFiltering() {
+  const config = loadConfig();
+  const substring = "User-defined substring";
+  addUserFilteredSubstring(substring, config);
 
-// Run tests
+  if (trie.search(substring)) {
+    console.log('User-defined substring filtering test passed');
+  } else {
+    console.error('User-defined substring filtering test failed');
+  }
+}
+function testServiceWorkerRegistration() {
+  // Register service worker and catch any errors
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').catch(error => {
+      console.error('Service Worker registration failed:', error);
+    });
+  }
+}
+function testTriePrefixWithNoMatches() {
+  const trie = new Trie();
+  trie.insert("apple");
+  trie.insert("orange");
+  trie.insert("banana");
+
+  if (trie.startsWith("grape")) {
+    console.error('Trie prefix test failed: Unexpected match');
+  } else {
+    console.log('Trie prefix test passed: No unexpected matches');
+  }
+}
+function testTrieDuplicateSubstring() {
+  const trie = new Trie();
+  trie.insert("apple");
+  trie.insert("apple");
+
+  if (trie.search("apple")) {
+    console.log('Trie duplicate substring test passed');
+  } else {
+    console.error('Trie duplicate substring test failed');
+  }
+}
+// Test the filterSpamPosts function
+async function testFilterSpamPosts() {
+  // Mock configuration
+  const config = {
+    MAX_CACHE_SIZE: 500,
+    MIN_CONTENT_LENGTH: 10,
+    MAX_HAMMING_DISTANCE: 3,
+    FILTERED_SUBSTRINGS: ['Test spam'],
+  };
+
+  // Precompute SimHashes for filtered substrings
+  const filteredSubstrings = new Set(await Promise.all(config.FILTERED_SUBSTRINGS.map(computeSimHash)));
+
+  // Mock message cache and hideElementById function
+  const messageCache = new Set();
+  const hideElementById = (id) => console.log(`Hiding post with ID: ${id}`);
+
+  // Execute filterSpamPosts function
+  await filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById);
+
+  // Log the results
+  console.log('Filtered messages:', messageCache.size);
+  console.log('Message cache:', messageCache);
+}
+
+// Run all tests
 testHammingDistance();
 testSimHashAndFiltering();
 testFilterShortOrEmptyPosts();
 testSimHashWithSpecialChars();
 testStorageLimitBehavior();
 testTrie();
+testFilterSpamPosts();
 testUserDefinedSubstringFiltering();
 testCacheEviction();
 testSimHashWithNonEnglishText();
 testSHA1();
+testServiceWorkerRegistration();
+testTriePrefixWithNoMatches();
+testTrieDuplicateSubstring();
