@@ -13,7 +13,11 @@
     "default_title": "FilterXOXO_TwinstpVer",
     "default_popup": "popup/popup.html"
   },
-  "permissions": ["scripting", "activeTab", "storage"],
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage"
+  ],
   "host_permissions": [
     "https://www.xoxohth.com/*",
     "https://xoxohth.com/*",
@@ -25,6 +29,10 @@
     "https://autoadmit.com/*",
     "http://autoadmit.com/*",
     "http://www.autoadmit.com/*"
+  ],
+  "web_accessible_resources": [
+    "popup/popup.html",
+    "settings/settings.html"
   ],
   "background": {
     "service_worker": "service-worker.js"
@@ -43,7 +51,10 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": ["utils.js", "foreground.js"]
+      "js": [
+        "utils.js",
+        "foreground.js"
+      ]
     }
   ]
 }

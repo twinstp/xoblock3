@@ -1,4 +1,3 @@
-importScripts('utils.js');
 
 self.addEventListener('message', async (event) => {
   try {
