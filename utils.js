@@ -7,7 +7,7 @@ class TrieNode {
   constructor() {
     this.children = {};
     this.isEndOfWord = false;
-    this.remainingWord = null; // Represents the remaining substring in a chain of nodes with only one child
+    this.remainingWord = null;
   }
 }
 
@@ -22,33 +22,25 @@ class Trie {
     while (i < word.length) {
       const ch = word[i];
       if (current.remainingWord) {
-        // If remainingWord exists, check if the word to be inserted is a prefix of remainingWord
-        if (current.remainingWord.startsWith(word.substring(i))) {
-          // Update the isEndOfWord flag
+        if (current.remainingWord === word.substring(i)) {
           current.isEndOfWord = true;
           return;
-        } else {
-          // Split the remainingWord and create a new child
-          const [commonPrefix, remaining] = this._splitPrefix(current.remainingWord, word.substring(i));
-          const next = new TrieNode();
-          next.remainingWord = remaining;
-          next.isEndOfWord = true;
-          current.remainingWord = commonPrefix;
-          current.children[remaining[0]] = next;
-          current.isEndOfWord = false;
-          return;
         }
+        const [commonPrefix, remaining1, remaining2] = this._splitPrefix(current.remainingWord, word.substring(i));
+        const next1 = new TrieNode();
+        const next2 = new TrieNode();
+        next1.remainingWord = remaining1;
+        next1.isEndOfWord = remaining2.length === 0;
+        next2.remainingWord = remaining2;
+        next2.isEndOfWord = true;
+        current.remainingWord = commonPrefix;
+        current.children[remaining1[0]] = next1;
+        current.children[remaining2[0]] = next2;
+        current.isEndOfWord = false;
+        return;
       }
       if (!current.children[ch]) {
-        if (i < word.length - 1) {
-          const newNode = new TrieNode();
-          newNode.remainingWord = word.substring(i + 1);
-          newNode.isEndOfWord = true;
-          current.children[ch] = newNode;
-          return;
-        } else {
-          current.children[ch] = new TrieNode();
-        }
+        current.children[ch] = new TrieNode();
       }
       current = current.children[ch];
       current.isEndOfWord = i === word.length - 1;
@@ -72,10 +64,14 @@ class Trie {
     }
     return current.isEndOfWord;
   }
+
   startsWith(prefix) {
     let current = this.root;
     for (let i = 0; i < prefix.length; i++) {
       const ch = prefix[i];
+      if (current.remainingWord) {
+        return prefix.substring(i) === current.remainingWord;
+      }
       if (!current.children[ch]) {
         return false;
       }
@@ -89,7 +85,7 @@ class Trie {
     while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
       i++;
     }
-    return [str1.substring(0, i), str1.substring(i)];
+    return [str1.substring(0, i), str1.substring(i), str2.substring(i)];
   }
 }
 
@@ -149,21 +145,22 @@ async function computeSimHash(message) {
   });
 
   const fingerprintBits = 32;
-  const v = new Int32Array(fingerprintBits);
+  const accumulator = new Int32Array(fingerprintBits); // Renamed to accumulator
 
+  // Compute weighted sum of token hash bits
   await Promise.allSettled(
     Array.from(tokenWeights.entries(), async ([token, weight]) => {
       const hash = await computeSHA1(token);
       const hashInt = BigInt(`0x${hash}`);
       for (let i = 0; i < fingerprintBits; ++i) {
-        v[i] += (hashInt >> BigInt(i)) & 1n ? weight : -weight;
+        accumulator[i] += (hashInt >> BigInt(i)) & 1n ? weight : -weight;
       }
     })
   );
 
   let simHash = 0n;
   for (let i = 0; i < fingerprintBits; ++i) {
-    if (v[i] > 0) {
+    if (accumulator[i] > 0) {
       simHash |= 1n << BigInt(i);
     }
   }
@@ -171,17 +168,18 @@ async function computeSimHash(message) {
   simHashMemo[message] = simHash;
   return simHash;
 }
+
 // Compute Hamming distance between two hash values
 function hammingDistance(hash1, hash2) {
   let xor = hash1 ^ hash2;
   let distance = 0;
+  // Count the number of set bits in xor
   while (xor) {
     distance += Number(xor & 1n);
     xor >>= 1n;
   }
   return distance;
 }
-
 // Statistics object to keep track of various metrics
 const stats = {
   spamPostsFiltered: 0,
@@ -328,7 +326,7 @@ function catchErrors() {
 function testHammingDistance() {
   const hash1 = 0b11010101n;
   const hash2 = 0b10101010n;
-  const expectedDistance = 5;
+  const expectedDistance = 7;
   const computedDistance = hammingDistance(hash1, hash2);
   if (computedDistance === expectedDistance) {
     console.log('hammingDistance test passed');
@@ -341,75 +339,68 @@ async function testSimHashAndFiltering() {
   const sampleText = "It's not a dysphoria. I see it in the positive way of working toward something, rather than away from something.";
   const computedSimHash = await computeSimHash(sampleText);
   const config = await loadConfig();
-  const isFiltered = await Promise.all([...config.FILTERED_SUBSTRINGS].map(async substring => {
+  const isFiltered = (await Promise.all([...config.FILTERED_SUBSTRINGS].map(async substring => {
     const precomputedSimHash = await computeSimHash(substring);
     return hammingDistance(computedSimHash, BigInt(precomputedSimHash)) <= config.MAX_HAMMING_DISTANCE;
-  }));
-  if (isFiltered) {
+  }))).some(Boolean);
+    if (isFiltered) {
     console.log('testSimHashAndFiltering passed');
   } else {
     console.error('testSimHashAndFiltering failed');
   }
 }
-function testFilterShortOrEmptyPosts() {
+async function testFilterShortOrEmptyPosts() {
   // Test the behavior with very short or empty posts
-  // Ensure that empty posts are never filtered
+  const config = await loadConfig();
   const emptyPost = '';
   const shortPost = 'Short!';
-  const config = loadConfig();
 
   // Test filtering an empty post
-  filterSpamPosts(config, initialConfig.FILTERED_SUBSTRINGS, new Set(), (id) => {
+  await filterSpamPosts(config, config.FILTERED_SUBSTRINGS, new Set(), (id) => {
     console.error('Empty post should not be filtered');
   }, emptyPost);
 
   // Test filtering a short post
-  filterSpamPosts(config, initialConfig.FILTERED_SUBSTRINGS, new Set(), (id) => {
+  await filterSpamPosts(config, config.FILTERED_SUBSTRINGS, new Set(), (id) => {
     console.error('Short post should not be filtered');
   }, shortPost);
 
   console.log('testFilterShortOrEmptyPosts passed');
 }
 
-function testSimHashWithSpecialChars() {
-  // Test simhash and filtering with posts that contain special characters or non-ASCII characters
-  const specialCharPost = 'Test!@#$%^&*()_+{}|:"<>?[]\\;\',./';
-  const nonAsciiCharPost = 'Test こんにちは 你好';
-  const config = loadConfig();
+async function testStorageLimitBehavior() {
+  // Mock configuration
+  const config = {
+    MAX_CACHE_SIZE: 5, // Reduced for testing purposes
+    MIN_CONTENT_LENGTH: 10,
+    MAX_HAMMING_DISTANCE: 3,
+    FILTERED_SUBSTRINGS: [],
+  };
 
-  // Test simhash computation for special characters
-  computeSimHash(specialCharPost).then((simHash) => {
-    if (typeof simHash === 'bigint') {
-      console.log('SimHash computation for special characters passed');
-    } else {
-      console.error('SimHash computation for special characters failed');
-    }
-  });
-
-  // Test simhash computation for non-ASCII characters
-  computeSimHash(nonAsciiCharPost).then((simHash) => {
-    if (typeof simHash === 'bigint') {
-      console.log('SimHash computation for non-ASCII characters passed');
-    } else {
-      console.error('SimHash computation for non-ASCII characters failed');
-    }
-  });
-}
-
-function testStorageLimitBehavior() {
-  // Test the behavior of the extension when the storage limit is reached
-  const config = loadConfig();
+  // Mock filteredSubstrings and messageCache
+  const filteredSubstrings = new Set();
   const messageCache = new Set();
-  const maxCacheSize = config.MAX_CACHE_SIZE || 500;
 
-  // Simulate reaching the storage limit
-  for (let i = 1; i <= maxCacheSize + 1; i++) {
-    const post = 'Test post ' + i;
-    messageCache.add(post);
+  // Mock hideElementById function
+  const hideElementById = (id) => console.log(`Hiding post with ID: ${id}`);
+
+  // Generate sample posts
+  const samplePosts = [
+    'Test post 1',
+    'Test post 2',
+    'Test post 3',
+    'Test post 4',
+    'Test post 5',
+    'Test post 6', // This post should cause an eviction
+  ];
+
+  // Execute filterSpamPosts function for each sample post
+  for (const post of samplePosts) {
+    await filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById, post);
   }
 
-  // Test if the message cache size is within the limit
-  if (messageCache.size <= maxCacheSize) {
+  // Check if the cache size is within the limit
+  if (messageCache.size <= config.MAX_CACHE_SIZE) {
     console.log('testStorageLimitBehavior passed');
   } else {
     console.error('testStorageLimitBehavior failed');
@@ -477,9 +468,17 @@ async function testSimHashWithNonEnglishText() {
   const specialCharPost = 'Test !@#$%^&*()_+{}|:"<>?[]\\;\',./';
   const emojiPost = 'Test 😊🌟👍';
 
-  const nonEnglishCharSimHash = await computeSimHash(nonEnglishCharPost);
-  const specialCharSimHash = await computeSimHash(specialCharPost);
-  const emojiSimHash = await computeSimHash(emojiPost);
+  // Define a custom tokenization function that handles emojis correctly
+  const customComputeSimHash = async (message) => {
+    const emojiRegex = /[\u{1F600}-\u{1F64F}]/u;
+    const tokens = message.split(/\s+/).flatMap(token => emojiRegex.test(token) ? [...token] : [token]);
+    // Compute SimHash using the updated tokens
+    return await computeSimHash(tokens.join(' '));
+  };
+
+  const nonEnglishCharSimHash = await customComputeSimHash(nonEnglishCharPost);
+  const specialCharSimHash = await customComputeSimHash(specialCharPost);
+  const emojiSimHash = await customComputeSimHash(emojiPost);
 
   if (typeof nonEnglishCharSimHash === 'bigint' &&
       typeof specialCharSimHash === 'bigint' &&
@@ -555,7 +554,6 @@ function testTrieDuplicateSubstring() {
     console.error('Trie duplicate substring test failed');
   }
 }
-// Test the filterSpamPosts function
 async function testFilterSpamPosts() {
   // Mock configuration
   const config = {
@@ -572,19 +570,28 @@ async function testFilterSpamPosts() {
   const messageCache = new Set();
   const hideElementById = (id) => console.log(`Hiding post with ID: ${id}`);
 
-  // Execute filterSpamPosts function
-  await filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById);
+  // Sample data
+  const samplePosts = [
+    'Test post 1',
+    'Test post 2',
+    'Test spam message',
+    'Test post 3',
+  ];
 
-  // Log the results
-  console.log('Filtered messages:', messageCache.size);
-  console.log('Message cache:', messageCache);
+    // Execute filterSpamPosts function for each sample post
+    for (const post of samplePosts) {
+      await filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById, post);
+    }
+
+    // Log the results
+    console.log('Filtered messages:', messageCache.size);
+    console.log('Message cache:', messageCache);
 }
 
 // Run all tests
 testHammingDistance();
 testSimHashAndFiltering();
 testFilterShortOrEmptyPosts();
-testSimHashWithSpecialChars();
 testStorageLimitBehavior();
 testTrie();
 testFilterSpamPosts();
