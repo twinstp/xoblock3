@@ -8,3 +8,5 @@ package-lock.json
 xoblock3.code-workspace
 .vscode/settings.json
 jest.config.ts
+yarn.lock
+*.lock
