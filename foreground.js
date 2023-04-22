@@ -19,6 +19,7 @@ function registerListeners(configData) {
       sendResponse({ success: true });
     }
   });
+
   if (chrome.storage) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.config) {
