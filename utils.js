@@ -1,21 +1,19 @@
 'use strict';
-// Constants
-const LONG_POST_THRESHOLD = 300;
+// ## SHA1 implementation (minified) - NEED TO ADD HERE NOT CALL CRYPTO OR SUBTLE JS B/C OF CPS AND MANIFEST V3
+var SHA1=
+"undefined"!=typeof exports?exports:{};!function(t){var r=[1518500249,1859775393,-1894007588,-899497514],i={sha1:1};SHA1.createHash=function(t){if(t&&!i[t]&&!i[t.toLowerCase()])throw new Error("Digest method not supported");return new s};var n,s=function(){function t(){this.A=1732584193,this.B=-271733879,this.C=-1732584194,this.D=271733878,this.E=-1009589776,this.t=0,this.i=0,(!n||e>=8e3)&&(n=new ArrayBuffer(8e3),e=0),this.h=new Uint8Array(n,e,80),this.o=new Int32Array(n,e,20),e+=80}return t.prototype.update=function(t){if("string"==typeof t)return this.u(t);if(null==t)throw new TypeError("Invalid type: "+typeof t);var r=t.byteOffset,i=t.byteLength,n=i/64|0,s=0;if(n&&!(3&r)&&!(this.t%64)){for(var h=new Int32Array(t.buffer,r,16*n);n--;)this.v(h,s>>2),s+=64;this.t+=s}if(1!==t.BYTES_PER_ELEMENT&&t.buffer){var e=new Uint8Array(t.buffer,r+s,i-s);return this.p(e)}return s===i?this:this.p(t,s)},t.prototype.p=function(t,r){var i=this.h,n=this.o,s=t.length;for(r|=0;r<s;){for(var h=this.t%64,e=h;r<s&&e<64;)i[e++]=t[r++];e>=64&&this.v(n),this.t+=e-h}return this},t.prototype.u=function(t){for(var r=this.h,i=this.o,n=t.length,s=this.i,h=0;h<n;){for(var e=this.t%64,f=e;h<n&&f<64;){var o=0|t.charCodeAt(h++);o<128?r[f++]=o:o<2048?(r[f++]=192|o>>>6,r[f++]=128|63&o):o<55296||o>57343?(r[f++]=224|o>>>12,r[f++]=128|o>>>6&63,r[f++]=128|63&o):s?(o=((1023&s)<<10)+(1023&o)+65536,r[f++]=240|o>>>18,r[f++]=128|o>>>12&63,r[f++]=128|o>>>6&63,r[f++]=128|63&o,s=0):s=o}f>=64&&(this.v(i),i[0]=i[16]),this.t+=f-e}return this.i=s,this},t.prototype.v=function(t,i){var n=this,s=n.A,e=n.B,f=n.C,w=n.D,y=n.E,A=0;for(i|=0;A<16;)h[A++]=o(t[i++]);for(A=16;A<80;A++)h[A]=u(h[A-3]^h[A-8]^h[A-14]^h[A-16]);for(A=0;A<80;A++){var p=A/20|0,d=a(s)+v(p,e,f,w)+y+h[A]+r[p]|0;y=w,w=f,f=c(e),e=s,s=d}this.A=s+this.A|0,this.B=e+this.B|0,this.C=f+this.C|0,this.D=w+this.D|0,this.E=y+this.E|0},t.prototype.digest=function(t){var r=this.h,i=this.o,n=this.t%64|0;for(r[n++]=128;3&n;)r[n++]=0;if((n>>=2)>14){for(;n<16;)i[n++]=0;n=0,this.v(i)}for(;n<16;)i[n++]=0;var s=8*this.t,h=(4294967295&s)>>>0,e=(s-h)/4294967296;return e&&(i[14]=o(e)),h&&(i[15]=o(h)),this.v(i),"hex"===t?this.I():this.U()},t.prototype.I=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E;return f(r)+f(i)+f(n)+f(s)+f(h)},t.prototype.U=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E,e=t.h,f=t.o;return f[0]=o(r),f[1]=o(i),f[2]=o(n),f[3]=o(s),f[4]=o(h),e.slice(0,20)},t}(),h=new Int32Array(80),e=0,f=function(t){return(t+4294967296).toString(16).substr(-8)},o=254===new Uint8Array(new Uint16Array([65279]).buffer)[0]?function(t){return t}:function(t){return t<<24&4278190080|t<<8&16711680|t>>8&65280|t>>24&255},u=function(t){return t<<1|t>>>31},a=function(t){return t<<5|t>>>27},c=function(t){return t<<30|t>>>2};function v(t,r,i,n){return 0===t?r&i|~r&n:2===t?r&i|r&n|i&n:r^i^n}}();
+// ##BEGIN REAL CODE##
+const LONG_POST_THRESHOLD = 1000;
 const HAMMING_DISTANCE_THRESHOLD = 5;
-
-// Predefined spam substrings
 const nulloSubstrings = [
   'modification, and he recently agreed to answer our questions',
   'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
   'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
   'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
-  'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.'
+  'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
 ];
-
-// ## SHA1 implementation (minified) - NEED TO ADD HERE NOT CALL CRYPTO OR SUBTLE JS B/C OF CPS AND MANIFEST V3
-var SHA1=
-"undefined"!=typeof exports?exports:{};!function(t){var r=[1518500249,1859775393,-1894007588,-899497514],i={sha1:1};SHA1.createHash=function(t){if(t&&!i[t]&&!i[t.toLowerCase()])throw new Error("Digest method not supported");return new s};var n,s=function(){function t(){this.A=1732584193,this.B=-271733879,this.C=-1732584194,this.D=271733878,this.E=-1009589776,this.t=0,this.i=0,(!n||e>=8e3)&&(n=new ArrayBuffer(8e3),e=0),this.h=new Uint8Array(n,e,80),this.o=new Int32Array(n,e,20),e+=80}return t.prototype.update=function(t){if("string"==typeof t)return this.u(t);if(null==t)throw new TypeError("Invalid type: "+typeof t);var r=t.byteOffset,i=t.byteLength,n=i/64|0,s=0;if(n&&!(3&r)&&!(this.t%64)){for(var h=new Int32Array(t.buffer,r,16*n);n--;)this.v(h,s>>2),s+=64;this.t+=s}if(1!==t.BYTES_PER_ELEMENT&&t.buffer){var e=new Uint8Array(t.buffer,r+s,i-s);return this.p(e)}return s===i?this:this.p(t,s)},t.prototype.p=function(t,r){var i=this.h,n=this.o,s=t.length;for(r|=0;r<s;){for(var h=this.t%64,e=h;r<s&&e<64;)i[e++]=t[r++];e>=64&&this.v(n),this.t+=e-h}return this},t.prototype.u=function(t){for(var r=this.h,i=this.o,n=t.length,s=this.i,h=0;h<n;){for(var e=this.t%64,f=e;h<n&&f<64;){var o=0|t.charCodeAt(h++);o<128?r[f++]=o:o<2048?(r[f++]=192|o>>>6,r[f++]=128|63&o):o<55296||o>57343?(r[f++]=224|o>>>12,r[f++]=128|o>>>6&63,r[f++]=128|63&o):s?(o=((1023&s)<<10)+(1023&o)+65536,r[f++]=240|o>>>18,r[f++]=128|o>>>12&63,r[f++]=128|o>>>6&63,r[f++]=128|63&o,s=0):s=o}f>=64&&(this.v(i),i[0]=i[16]),this.t+=f-e}return this.i=s,this},t.prototype.v=function(t,i){var n=this,s=n.A,e=n.B,f=n.C,w=n.D,y=n.E,A=0;for(i|=0;A<16;)h[A++]=o(t[i++]);for(A=16;A<80;A++)h[A]=u(h[A-3]^h[A-8]^h[A-14]^h[A-16]);for(A=0;A<80;A++){var p=A/20|0,d=a(s)+v(p,e,f,w)+y+h[A]+r[p]|0;y=w,w=f,f=c(e),e=s,s=d}this.A=s+this.A|0,this.B=e+this.B|0,this.C=f+this.C|0,this.D=w+this.D|0,this.E=y+this.E|0},t.prototype.digest=function(t){var r=this.h,i=this.o,n=this.t%64|0;for(r[n++]=128;3&n;)r[n++]=0;if((n>>=2)>14){for(;n<16;)i[n++]=0;n=0,this.v(i)}for(;n<16;)i[n++]=0;var s=8*this.t,h=(4294967295&s)>>>0,e=(s-h)/4294967296;return e&&(i[14]=o(e)),h&&(i[15]=o(h)),this.v(i),"hex"===t?this.I():this.U()},t.prototype.I=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E;return f(r)+f(i)+f(n)+f(s)+f(h)},t.prototype.U=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E,e=t.h,f=t.o;return f[0]=o(r),f[1]=o(i),f[2]=o(n),f[3]=o(s),f[4]=o(h),e.slice(0,20)},t}(),h=new Int32Array(80),e=0,f=function(t){return(t+4294967296).toString(16).substr(-8)},o=254===new Uint8Array(new Uint16Array([65279]).buffer)[0]?function(t){return t}:function(t){return t<<24&4278190080|t<<8&16711680|t>>8&65280|t>>24&255},u=function(t){return t<<1|t>>>31},a=function(t){return t<<5|t>>>27},c=function(t){return t<<30|t>>>2};function v(t,r,i,n){return 0===t?r&i|~r&n:2===t?r&i|r&n|i&n:r^i^n}}();
-// ##BEGIN REAL CODE##
+// DATA STRUCTURES AND KEY ALGOS
+// CLASS DEFINITIONS (XORFilter, BloomFilter, LRUCache, TrieNode, SimHashGenerator)  
 class XORFilter {
   constructor(keys, seed = 123456789) {
     this.fingerprintSize = 8; // 8 bits for fingerprints
@@ -250,17 +248,35 @@ class TrieNode {
     return current.isEndOfWord;
   }
 }
-// Initialize Bloom filter, LRU cache, Trie node, and SimHash generator
-const bloomFilter = new BloomFilter(10000, 5);
-const lruCache = new LRUCache(1000);
-const substringTrie = new TrieNode();
-const simHashGenerator = new SimHashGenerator();
+async function loadConfig() {
+  const initialConfig = getInitialConfig();
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.storage.local.get('config', (storedData) => {
+        let config = storedData && storedData.config ? storedData.config : initialConfig;
+        const substringTrie = new TrieNode();
+        config.nulloSubstrings.forEach((substring) => substringTrie.insert(substring));
+        const xorFilter = new XORFilter(config.nulloSubstrings);
+        const bloomFilter = new BloomFilter(10000, 5);
+        config.nulloSubstrings.forEach((substring) => bloomFilter.add(substring));
+        const lruCache = new LRUCache(1000);
+        const simHashGenerator = new SimHashGenerator();
+        resolve({ config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator });
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 // Populate Trie node and Bloom filter with predefined substrings
+const substringTrie = new TrieNode();
+const bloomFilter = new BloomFilter(10000, 5);
 nulloSubstrings.forEach(substring => {
   substringTrie.insert(substring);
   bloomFilter.add(substring);
 });
+
 function escapeRegexSpecialCharacters(str) {
   return str.replace(/[-[\]\/{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
@@ -270,8 +286,7 @@ const fuzzyMatch = (() => {
   return (str, pattern) => {
     if (!regexCache.has(pattern)) {
       const regex = new RegExp(
-        pattern
-          .split('')
+        pattern.split('')
           .map(ch => `[^${escapeRegexSpecialCharacters(ch)}]*${escapeRegexSpecialCharacters(ch)}`)
           .join('.*?'),
         'g'
@@ -284,124 +299,24 @@ const fuzzyMatch = (() => {
 
 // Reusable function to retrieve post elements
 function getPostElements() {
-  const postSelector = 'body > a > table > tbody > tr > td > font > p > a > table';
+  const postSelector = 'body>a>table>tbody>tr>td>font>p>a>table';
   const postTables = document.querySelectorAll(postSelector);
-  const posts = postTables.map((postTable) => {
+  const posts = Array.from(postTables).map((postTable) => {
     // Get the title
-    const title = postTable.querySelector('tbody > tr:nth-child(1) > td:nth-child(2) > font > a').textContent.trim();
+    const title = postTable.querySelector('tbody>tr:nth-child(1)>td:nth-child(2)>font>a').textContent.trim();
     // Get the author
-    const author = postTable.querySelector('tbody > tr:nth-child(1) > td:nth-child(1) > font > b:nth-child(2)').nextSibling.textContent.trim();
-    // Get the content
-    const content = postTable.querySelector('tbody > tr:nth-child(2) > td:nth-child(2) > font > p').textContent.trim();
-    return { title, author, content };
-  });
-  return posts;
+    const author = postTable.querySelector('tbody>tr:nth-child(1)>td:nth-child(1)>font>b:nth-child(2)').nextSibling.textContent.trim();
+  // Get the content
+  const content = postTable.querySelector('tbody>tr:nth-child(2)>td:nth-child(2)>font>p').textContent.trim();
+  return {
+    title,
+    author,
+    content,
+  };
+});
+return posts;
 }
-class XORFilter {
-  constructor(keys, seed = 123456789) {
-    this.fingerprintSize = 8; // 8 bits for fingerprints
-    this.hashes = 3;
-    this.seed = seed; // User-defined seed for hash functions
-    this.size = keys.length;
-    this.arrayLength = this.getArrayLength(this.size);
-    this.blockLength = Math.floor(this.arrayLength / this.hashes);
-    this.fingerprints = new Uint8Array(this.arrayLength);
-    this.initialize(keys);
-  }
 
-  getArrayLength(size) {
-    const offset = 32;
-    const factorTimes100 = 123;
-    return Math.floor(offset + (factorTimes100 * size) / 100);
-  }
-
-  hash(key, seed, index) {
-    const r = ((key + seed) << (21 * index)) >>> 0;
-    return (r % this.blockLength) + index * this.blockLength;
-  }
-
-  fingerprint(hash) {
-    return hash & ((1 << this.fingerprintSize) - 1);
-  }
-
-  initialize(keys) {
-    const t2count = new Uint8Array(this.arrayLength);
-    const t2 = new Uint32Array(this.arrayLength);
-    keys.forEach((key) => {
-      for (let hi = 0; hi < this.hashes; hi++) {
-        const h = this.hash(key, this.seed, hi);
-        t2[h] ^= key;
-        t2count[h]++;
-      }
-    });
-
-    const alone = Array.from({ length: this.hashes }, () => new Set());
-    for (let nextAlone = 0; nextAlone < this.hashes; nextAlone++) {
-      for (let i = 0; i < this.blockLength; i++) {
-        if (t2count[nextAlone * this.blockLength + i] === 1) {
-          alone[nextAlone].add(nextAlone * this.blockLength + i);
-        }
-      }
-    }
-
-    const reverseOrder = [];
-    const reverseH = [];
-    while (true) {
-      let found = -1;
-      let i = -1;
-      for (let hi = 0; hi < this.hashes; hi++) {
-        if (alone[hi].size > 0) {
-          i = alone[hi].values().next().value;
-          alone[hi].delete(i);
-          found = hi;
-          break;
-        }
-      }
-      if (i === -1) break;
-      if (t2count[i] <= 0) continue;
-      const k = t2[i];
-      t2count[i]--;
-      for (let hi = 0; hi < this.hashes; hi++) {
-        if (hi !== found) {
-          const h = this.hash(k, this.seed, hi);
-          t2count[h]--;
-          t2[h] ^= k;
-          if (t2count[h] === 1) {
-            alone[hi].add(h);
-          }
-        }
-      }
-      reverseOrder.push(k);
-      reverseH.push(found);
-    }
-
-    for (let i = reverseOrder.length - 1; i >= 0; i--) {
-      const k = reverseOrder[i];
-      const found = reverseH[i];
-      let change = -1;
-      let xor = this.fingerprint(k);
-      for (let hi = 0; hi < this.hashes; hi++) {
-        const h = this.hash(k, this.seed, hi);
-        if (found === hi) {
-          change = h;
-        } else {
-          xor ^= this.fingerprints[h]; 
-        }
-      }
-      this.fingerprints[change] = xor;
-    }
-  }
-
-  mayContain(key) {
-    const hash = key + this.seed;
-    let f = this.fingerprint(hash);
-    const h0 = this.hash(key, this.seed, 0);
-    const h1 = this.hash(key, this.seed, 1);
-    const h2 = this.hash(key, this.seed, 2);
-    f ^= this.fingerprints[h0] ^ this.fingerprints[h1] ^ this.fingerprints[h2];
-    return (f & 0xff) === 0;
-  }
-}
   class SimHashGenerator {
     constructor(fingerprintBits = 32) {
       this.fingerprintBits = fingerprintBits;
@@ -528,18 +443,21 @@ async function filterSpamPosts(config) {
   await Promise.all(computePromises);
 }
 
+// (placeholder)
+function registerAddUserFilteredSubstringListener(config) {}
+
+// Placeholder function to register listener for config changes
+function registerConfigChangeListener(config, filterSpamPosts) {}
+
 // Main function to initialize the extension and run tests
 (async () => {
-  const config = await loadConfig();
+  const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
   registerAddUserFilteredSubstringListener(config);
   registerConfigChangeListener(config, filterSpamPosts);
   catchErrors();
-  await filterSpamPosts(config);
+  await filterSpamPosts(config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator);
 })();
 // ##TESTS START HERE. CUT IN PRODUCTION BUILD --TWINS##
-
-
-
 
 
 //##TESTS##

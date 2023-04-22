@@ -11,6 +11,7 @@ async function loadConfiguration() {
 }
 
 function registerListeners(configData) {
+  // Listener for adding user-defined filtered substrings
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { type, substring } = message;
     if (type === 'addUserFilteredSubstring' && substring) {
@@ -20,6 +21,7 @@ function registerListeners(configData) {
     }
   });
 
+  // Listener for changes in the extension's storage
   if (chrome.storage) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.config) {
