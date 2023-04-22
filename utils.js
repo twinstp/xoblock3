@@ -1,158 +1,310 @@
 'use strict';
-//SHA1 implementation
-var SHA1="undefined"!=typeof exports?exports:{};!function(t){var r=[1518500249,1859775393,-1894007588,-899497514],i={sha1:1};SHA1.createHash=function(t){if(t&&!i[t]&&!i[t.toLowerCase()])throw new Error("Digest method not supported");return new s};var n,s=function(){function t(){this.A=1732584193,this.B=-271733879,this.C=-1732584194,this.D=271733878,this.E=-1009589776,this.t=0,this.i=0,(!n||e>=8e3)&&(n=new ArrayBuffer(8e3),e=0),this.h=new Uint8Array(n,e,80),this.o=new Int32Array(n,e,20),e+=80}return t.prototype.update=function(t){if("string"==typeof t)return this.u(t);if(null==t)throw new TypeError("Invalid type: "+typeof t);var r=t.byteOffset,i=t.byteLength,n=i/64|0,s=0;if(n&&!(3&r)&&!(this.t%64)){for(var h=new Int32Array(t.buffer,r,16*n);n--;)this.v(h,s>>2),s+=64;this.t+=s}if(1!==t.BYTES_PER_ELEMENT&&t.buffer){var e=new Uint8Array(t.buffer,r+s,i-s);return this.p(e)}return s===i?this:this.p(t,s)},t.prototype.p=function(t,r){var i=this.h,n=this.o,s=t.length;for(r|=0;r<s;){for(var h=this.t%64,e=h;r<s&&e<64;)i[e++]=t[r++];e>=64&&this.v(n),this.t+=e-h}return this},t.prototype.u=function(t){for(var r=this.h,i=this.o,n=t.length,s=this.i,h=0;h<n;){for(var e=this.t%64,f=e;h<n&&f<64;){var o=0|t.charCodeAt(h++);o<128?r[f++]=o:o<2048?(r[f++]=192|o>>>6,r[f++]=128|63&o):o<55296||o>57343?(r[f++]=224|o>>>12,r[f++]=128|o>>>6&63,r[f++]=128|63&o):s?(o=((1023&s)<<10)+(1023&o)+65536,r[f++]=240|o>>>18,r[f++]=128|o>>>12&63,r[f++]=128|o>>>6&63,r[f++]=128|63&o,s=0):s=o}f>=64&&(this.v(i),i[0]=i[16]),this.t+=f-e}return this.i=s,this},t.prototype.v=function(t,i){var n=this,s=n.A,e=n.B,f=n.C,w=n.D,y=n.E,A=0;for(i|=0;A<16;)h[A++]=o(t[i++]);for(A=16;A<80;A++)h[A]=u(h[A-3]^h[A-8]^h[A-14]^h[A-16]);for(A=0;A<80;A++){var p=A/20|0,d=a(s)+v(p,e,f,w)+y+h[A]+r[p]|0;y=w,w=f,f=c(e),e=s,s=d}this.A=s+this.A|0,this.B=e+this.B|0,this.C=f+this.C|0,this.D=w+this.D|0,this.E=y+this.E|0},t.prototype.digest=function(t){var r=this.h,i=this.o,n=this.t%64|0;for(r[n++]=128;3&n;)r[n++]=0;if((n>>=2)>14){for(;n<16;)i[n++]=0;n=0,this.v(i)}for(;n<16;)i[n++]=0;var s=8*this.t,h=(4294967295&s)>>>0,e=(s-h)/4294967296;return e&&(i[14]=o(e)),h&&(i[15]=o(h)),this.v(i),"hex"===t?this.I():this.U()},t.prototype.I=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E;return f(r)+f(i)+f(n)+f(s)+f(h)},t.prototype.U=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E,e=t.h,f=t.o;return f[0]=o(r),f[1]=o(i),f[2]=o(n),f[3]=o(s),f[4]=o(h),e.slice(0,20)},t}(),h=new Int32Array(80),e=0,f=function(t){return(t+4294967296).toString(16).substr(-8)},o=254===new Uint8Array(new Uint16Array([65279]).buffer)[0]?function(t){return t}:function(t){return t<<24&4278190080|t<<8&16711680|t>>8&65280|t>>24&255},u=function(t){return t<<1|t>>>31},a=function(t){return t<<5|t>>>27},c=function(t){return t<<30|t>>>2};function v(t,r,i,n){return 0===t?r&i|~r&n:2===t?r&i|r&n|i&n:r^i^n}}();
+//SHA1 implementation (minified)
+var SHA1=
+"undefined"!=typeof exports?exports:{};!function(t){var r=[1518500249,1859775393,-1894007588,-899497514],i={sha1:1};SHA1.createHash=function(t){if(t&&!i[t]&&!i[t.toLowerCase()])throw new Error("Digest method not supported");return new s};var n,s=function(){function t(){this.A=1732584193,this.B=-271733879,this.C=-1732584194,this.D=271733878,this.E=-1009589776,this.t=0,this.i=0,(!n||e>=8e3)&&(n=new ArrayBuffer(8e3),e=0),this.h=new Uint8Array(n,e,80),this.o=new Int32Array(n,e,20),e+=80}return t.prototype.update=function(t){if("string"==typeof t)return this.u(t);if(null==t)throw new TypeError("Invalid type: "+typeof t);var r=t.byteOffset,i=t.byteLength,n=i/64|0,s=0;if(n&&!(3&r)&&!(this.t%64)){for(var h=new Int32Array(t.buffer,r,16*n);n--;)this.v(h,s>>2),s+=64;this.t+=s}if(1!==t.BYTES_PER_ELEMENT&&t.buffer){var e=new Uint8Array(t.buffer,r+s,i-s);return this.p(e)}return s===i?this:this.p(t,s)},t.prototype.p=function(t,r){var i=this.h,n=this.o,s=t.length;for(r|=0;r<s;){for(var h=this.t%64,e=h;r<s&&e<64;)i[e++]=t[r++];e>=64&&this.v(n),this.t+=e-h}return this},t.prototype.u=function(t){for(var r=this.h,i=this.o,n=t.length,s=this.i,h=0;h<n;){for(var e=this.t%64,f=e;h<n&&f<64;){var o=0|t.charCodeAt(h++);o<128?r[f++]=o:o<2048?(r[f++]=192|o>>>6,r[f++]=128|63&o):o<55296||o>57343?(r[f++]=224|o>>>12,r[f++]=128|o>>>6&63,r[f++]=128|63&o):s?(o=((1023&s)<<10)+(1023&o)+65536,r[f++]=240|o>>>18,r[f++]=128|o>>>12&63,r[f++]=128|o>>>6&63,r[f++]=128|63&o,s=0):s=o}f>=64&&(this.v(i),i[0]=i[16]),this.t+=f-e}return this.i=s,this},t.prototype.v=function(t,i){var n=this,s=n.A,e=n.B,f=n.C,w=n.D,y=n.E,A=0;for(i|=0;A<16;)h[A++]=o(t[i++]);for(A=16;A<80;A++)h[A]=u(h[A-3]^h[A-8]^h[A-14]^h[A-16]);for(A=0;A<80;A++){var p=A/20|0,d=a(s)+v(p,e,f,w)+y+h[A]+r[p]|0;y=w,w=f,f=c(e),e=s,s=d}this.A=s+this.A|0,this.B=e+this.B|0,this.C=f+this.C|0,this.D=w+this.D|0,this.E=y+this.E|0},t.prototype.digest=function(t){var r=this.h,i=this.o,n=this.t%64|0;for(r[n++]=128;3&n;)r[n++]=0;if((n>>=2)>14){for(;n<16;)i[n++]=0;n=0,this.v(i)}for(;n<16;)i[n++]=0;var s=8*this.t,h=(4294967295&s)>>>0,e=(s-h)/4294967296;return e&&(i[14]=o(e)),h&&(i[15]=o(h)),this.v(i),"hex"===t?this.I():this.U()},t.prototype.I=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E;return f(r)+f(i)+f(n)+f(s)+f(h)},t.prototype.U=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E,e=t.h,f=t.o;return f[0]=o(r),f[1]=o(i),f[2]=o(n),f[3]=o(s),f[4]=o(h),e.slice(0,20)},t}(),h=new Int32Array(80),e=0,f=function(t){return(t+4294967296).toString(16).substr(-8)},o=254===new Uint8Array(new Uint16Array([65279]).buffer)[0]?function(t){return t}:function(t){return t<<24&4278190080|t<<8&16711680|t>>8&65280|t>>24&255},u=function(t){return t<<1|t>>>31},a=function(t){return t<<5|t>>>27},c=function(t){return t<<30|t>>>2};function v(t,r,i,n){return 0===t?r&i|~r&n:2===t?r&i|r&n|i&n:r^i^n}}();
+class XORFilter {
+  constructor(keys, seed = 123456789) {
+    this.fingerprintSize = 8; // 8 bits for fingerprints
+    this.hashes = 3;
+    this.seed = seed; // User-defined seed for hash functions
+    this.size = keys.length;
+    this.arrayLength = this.getArrayLength(this.size);
+    this.blockLength = Math.floor(this.arrayLength / this.hashes);
+    this.fingerprints = new Uint8Array(this.arrayLength);
+    this.initialize(keys);
+  }
 
-const simHashMemo = {};
-// Trie data structure
-class Trie {
+  getArrayLength(size) {
+    const offset = 32;
+    const factorTimes100 = 123;
+    return Math.floor(offset + (factorTimes100 * size) / 100);
+  }
+
+  hash(key, seed, index) {
+    const r = ((key + seed) << (21 * index)) >>> 0;
+    return (r % this.blockLength) + index * this.blockLength;
+  }
+
+  fingerprint(hash) {
+    return hash & ((1 << this.fingerprintSize) - 1);
+  }
+
+  initialize(keys) {
+    const t2count = new Uint8Array(this.arrayLength);
+    const t2 = new Uint32Array(this.arrayLength);
+    keys.forEach((key) => {
+      for (let hi = 0; hi < this.hashes; hi++) {
+        const h = this.hash(key, this.seed, hi);
+        t2[h] ^= key;
+        t2count[h]++;
+      }
+    });
+
+    const alone = Array.from({ length: this.hashes }, () => new Set());
+    for (let nextAlone = 0; nextAlone < this.hashes; nextAlone++) {
+      for (let i = 0; i < this.blockLength; i++) {
+        if (t2count[nextAlone * this.blockLength + i] === 1) {
+          alone[nextAlone].add(nextAlone * this.blockLength + i);
+        }
+      }
+    }
+
+    const reverseOrder = [];
+    const reverseH = [];
+    while (true) {
+      let found = -1;
+      let i = -1;
+      for (let hi = 0; hi < this.hashes; hi++) {
+        if (alone[hi].size > 0) {
+          i = alone[hi].values().next().value;
+          alone[hi].delete(i);
+          found = hi;
+          break;
+        }
+      }
+      if (i === -1) break;
+      if (t2count[i] <= 0) continue;
+      const k = t2[i];
+      t2count[i]--;
+      for (let hi = 0; hi < this.hashes; hi++) {
+        if (hi !== found) {
+          const h = this.hash(k, this.seed, hi);
+          t2count[h]--;
+          t2[h] ^= k;
+          if (t2count[h] === 1) {
+            alone[hi].add(h);
+          }
+        }
+      }
+      reverseOrder.push(k);
+      reverseH.push(found);
+    }
+
+    for (let i = reverseOrder.length - 1; i >= 0; i--) {
+      const k = reverseOrder[i];
+      const found = reverseH[i];
+      let change = -1;
+      let xor = this.fingerprint(k);
+      for (let hi = 0; hi < this.hashes; hi++) {
+        const h = this.hash(k, this.seed, hi);
+        if (found === hi) {
+          change = h;
+        } else {
+          xor ^= this.fingerprints[h];
+               }
+      }
+      this.fingerprints[change] = xor;
+    }
+  }
+
+  mayContain(key) {
+    const hash = key + this.seed; 
+    let f = th`is`.fingerprint(hash);
+    const h0 = this.hash(key, this.seed, 0);
+    const h1 = this.hash(key, this.seed, 1);
+    const h2 = this.hash(key, this.seed, 2);
+    f ^= this.fingerprints[h0] ^ this.fingerprints[h1] ^ this.fingerprints[h2];
+    return (f & 0xff) === 0;
+  }
+}
+class BloomFilter {
+  constructor(size, numHashes) {
+    this.size = size;
+    this.numHashes = numHashes;
+    this.bits = new Uint8Array(size / 8);
+    this.memo = new Map();
+  }
+
+  add(element) {
+    for (let i = 0; i < this.numHashes; i++) {
+      const hash = this.hash(element, i);
+      this.bits[hash >> 5] |= 1 << (hash & 31);
+    }
+  }
+
+  test(element) {
+    if (this.memo.has(element)) {
+      return this.memo.get(element);
+    }
+
+    const hash = this.hash(element);
+    const low = 0;
+    const high = this.size - 1;
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      if ((this.bits[mid >> 5] & (1 << (mid & 31))) === 0) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    if (low === this.size) {
+      return false;
+    } else {
+      this.memo.set(element, true);
+      return true;
+    }
+  }
+
+  hash(element, hashIndex) {
+    const seed = 0x5bd1e995;
+    const hash = element.charCodeAt(0) + seed * hashIndex;
+    for (let i = 1; i < element.length; i++) {
+      hash = hash * seed + element.charCodeAt(i);
+    }
+    return hash % this.size;
+  }
+}
+class LRUCache {
+  constructor(capacity) {
+    this.capacity = capacity;
+    this.cache = new Map();
+    this.head = null;
+    this.tail = null;
+  }
+  get(key) {
+    if (!this.cache.has(key)) return null;
+    const node = this.cache.get(key);
+    this.moveToHead(node);
+    return node.value;
+  }
+  put(key, value) {
+    if (this.cache.has(key)) {
+      const node = this.cache.get(key);
+      node.value = value;
+      this.moveToHead(node);
+    } else {
+      const node = { key, value, prev: null, next: null };
+      this.cache.set(key, node);
+      this.addToHead(node);
+      if (this.cache.size > this.capacity) {
+        this.cache.delete(this.tail.key);
+        this.removeFromTail();
+      }
+    }
+  }
+  moveToHead(node) {
+    if (node === this.head) return;
+    this.removeFromList(node);
+    this.addToHead(node);
+  }
+  addToHead(node) {
+    node.next = this.head;
+    node.prev = null;
+    if (this.head) this.head.prev = node;
+    this.head = node;
+    if (!this.tail) this.tail = node;
+  }
+  removeFromList(node) {
+    if (node.prev) node.prev.next = node.next;
+    if (node.next) node.next.prev = node.prev;
+    if (node === this.head) this.head = node.next;
+    if (node === this.tail) this.tail = node.prev;
+  }
+
+  removeFromTail() {
+    if (this.tail) this.tail = this.tail.prev;
+    if (this.tail) this.tail.next = null;
+  }
+}
+
+class TrieNode {
   constructor() {
-    this.root = new TrieNode();
+    this.children = new Map();
+    this.isEndOfWord = false;
   }
 
   insert(word) {
-    let current = this.root;
+    let current = this;
     for (const ch of word) {
-      if (!current.children[ch]) {
-        current.children[ch] = new TrieNode();
+      if (!current.children.has(ch)) {
+        current.children.set(ch, new TrieNode());
       }
-      current = current.children[ch];
+      current = current.children.get(ch);
     }
     current.isEndOfWord = true;
   }
 
   search(word) {
-    let current = this.root;
+    let current = this;
     for (const ch of word) {
-      if (!current.children[ch]) {
+      if (!current.children.has(ch)) {
         return false;
       }
-      current = current.children[ch];
+      current = current.children.get(ch);
     }
     return current.isEndOfWord;
   }
-
-  startsWith(prefix) {
-    let current = this.root;
-    for (const ch of prefix) {
-      if (!current.children[ch]) {
-        return false;
-      }
-      current = current.children[ch];
-    }
-    return true;
-  }
 }
 
-// Trie node
-class TrieNode {
-  constructor() {
-    this.children = {};
-    this.isEndOfWord = false;
-  }
-}
-
-// Utility function to escape special regex characters
 function escapeRegexSpecialCharacters(str) {
-  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
+  return str.replace(/[-[\]\/{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
 
-// Fuzzy matching with optimized algorithm and caching
 const fuzzyMatch = (() => {
   const regexCache = new Map();
   return (str, pattern) => {
     if (!regexCache.has(pattern)) {
-      const regex = new RegExp(pattern.split('').map(ch => '[^' + escapeRegexSpecialCharacters(ch) + ']*' + escapeRegexSpecialCharacters(ch)).join('.*?'));
+      const regex = new RegExp(
+        pattern
+          .split('')
+          .map(ch => `[^${escapeRegexSpecialCharacters(ch)}]*${escapeRegexSpecialCharacters(ch)}`)
+          .join('.*?'),
+        'g'
+      );
       regexCache.set(pattern, regex);
     }
     return regexCache.get(pattern).test(str);
   };
 })();
 
-// Hamming distance calculation
-const hammingDistance = (hash1, hash2) => {
-  let xor = hash1 ^ hash2;
-  let distance = 0;
-  while (xor) {
-    distance += Number(xor & 1n);
-    xor >>= 1n;
+// Reusable function to retrieve post elements
+function getPostElements() {
+  const postSelector = 'body > a > table > tbody > tr > td > font > p > a > table';
+  const postTables = document.querySelectorAll(postSelector);
+  const posts = postTables.map((postTable) => {
+    // Get the title
+    const title = postTable.querySelector('tbody > tr:nth-child(1) > td:nth-child(2) > font > a').textContent.trim();
+    // Get the author
+    const author = postTable.querySelector('tbody > tr:nth-child(1) > td:nth-child(1) > font > b:nth-child(2)').nextSibling.textContent.trim();
+    // Get the content
+    const content = postTable.querySelector('tbody > tr:nth-child(2) > td:nth-child(2) > font > p').textContent.trim();
+    return { title, author, content };
+  });
+  return posts;
+}
+class SimHashGenerator {
+  constructor(fingerprintBits = 32) {
+    this.fingerprintBits = fingerprintBits;
+    this.tokenWeights = new Map();
+    this.accumulator = new Int32Array(this.fingerprintBits);
   }
-  return distance;
-};
 
-const initialConfig = {
-  MAX_CACHE_SIZE: 500,
-  MAX_HAMMING_DISTANCE: 3,
-  FILTERED_SUBSTRINGS: new Set([
-    "It's not a dysphoria. I see it in the positive way of working toward something, rather than away from something.",
-    "legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago",
-    "America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling",
-    "Go to the link, and look at that woman. Look at that face. She never expressed any remorse over",
-    "destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess",
-  ]),
-};
-
-// Load configuration from storage or use default values
-async function loadConfig() {
-  let config = initialConfig;
-  try {
-    const storedConfig = await chrome.storage.local.get('config');
-    config = storedConfig.config || initialConfig;
-    config.FILTERED_SUBSTRINGS = new Set(config.FILTERED_SUBSTRINGS);
-  } catch (error) {
-    console.warn('Failed to load configuration from storage. Using initial configuration.');
-  }
-  const substringTrie = new Trie();
-  config.FILTERED_SUBSTRINGS.forEach(substring => substringTrie.insert(substring));
-  return { config, substringTrie };
-}
-// Precompute simhash values for FILTERED_SUBSTRINGS
-const precomputedSimHashes = new Set();
-for (const substring of initialConfig.FILTERED_SUBSTRINGS) {
-  precomputedSimHashes.add(computeSimHash(substring));
-}
-
-// Trie for efficient substring search
-const trie = new Trie();
-for (const substring of initialConfig.FILTERED_SUBSTRINGS) {
-  trie.insert(substring);
-}
-
-// Updated computeSHA1 function
-(async () => {
-  const computeSHA1 = async (message) => {
-    const hash = SHA1.createHash(message).I();
-    return hash;
-  };
-
-  const computeSimHash = async (message) => {
-    const tokenWeights = new Map();
+  compute(message) {
     const tokens = message.match(/\b\w+\b/g) || [];
-    tokens.forEach((token) => {
-      const weight = (tokenWeights.get(token) || 0) + 1;
-      tokenWeights.set(token, weight);
+    tokens.forEach(token => {
+      const weight = (this.tokenWeights.get(token) || 0) + 1;
+      this.tokenWeights.set(token, weight);
     });
-    const fingerprintBits = 32;
-    const accumulator = new Int32Array(fingerprintBits);
-    await Promise.allSettled(
-      Array.from(tokenWeights.entries(), async ([token, weight]) => {
-        const hash = await computeSHA1(token);
-        const hashInt = BigInt(`0x${hash}`);
-        for (let i = 0; i < fingerprintBits; ++i) {
-          accumulator[i] += (hashInt >> BigInt(i)) & 1n ? weight : -weight;
-        }
-      })
-    );
+
+    for (const [token, weight] of this.tokenWeights) {
+      const hash = token.split('').reduce((acc, char) => acc * 31 + char.charCodeAt(0), 0);
+      for (let i = 0; i < this.fingerprintBits; ++i) {
+        this.accumulator[i] += (hash & (1 << i)) ? weight : -weight;
+      }
+    }
+
     let simHash = 0n;
-    for (let i = 0; i < fingerprintBits; ++i) {
-      if (accumulator[i] > 0) {
+    for (let i = 0; i < this.fingerprintBits; ++i) {
+      if (this.accumulator[i] > 0) {
         simHash |= 1n << BigInt(i);
       }
     }
-    simHashMemo[message] = simHash;
-    return simHash;
-  };
 
-  const hammingDistance = (hash1, hash2) => {
+    return simHash;
+  }
+
+  static hammingDistance(hash1, hash2) {
     let xor = hash1 ^ hash2;
     let distance = 0;
     while (xor) {
@@ -160,113 +312,101 @@ for (const substring of initialConfig.FILTERED_SUBSTRINGS) {
       xor >>= 1n;
     }
     return distance;
-  };
-//  track stats
-const stats = {
-  spamPostsFiltered: 0,
-  cacheSize: 0,
-  cacheEvictions: 0,
-};
-
-function extractPostText(table) {
-  const bodyElement = table.querySelector('table font');
-  return bodyElement ? bodyElement.textContent.trim() : '';
-}
-// Main function to filter spam posts
-async function filterSpamPosts(config, substringTrie, messageCache, hideElementById) {
-  const MAX_CACHE_SIZE = config.MAX_CACHE_SIZE || 500;
-  const messageTables = document.querySelectorAll("table[width='700'][id], table.threadlisttr[name]");
-  const simHashFrequencies = new Map();
-  const hideAndRecord = (id, simHash) => {
-    hideElementById(id);
-    simHashFrequencies.set(simHash, (simHashFrequencies.get(simHash) || 0) + 1);
-  };
-  const computePromises = messageTables.map(table => ({
-    content: extractPostText(table),
-    id: table.id || table.getAttribute('name')
-  }))
-    .filter(({ content }) => content.length > 250)
-    .filter(({ content }) => !content.split(' ').some(token => substringTrie.search(token) || fuzzyMatch(content, token)))
-    .map(({ content, id }) => computeSimHash(content).then((simHash) => {
-      if (!simHash) return;
-      if (Array.from(messageCache).some(precomputedSimHash => hammingDistance(simHash, precomputedSimHash) <= config.MAX_HAMMING_DISTANCE)) {
-        hideAndRecord(id, simHash);
-        return;
-      }
-      messageCache.add(simHash);
-      simHashFrequencies.set(simHash, 1);
-      if (messageCache.size > MAX_CACHE_SIZE) {
-        const leastFrequentHash = Array.from(simHashFrequencies.entries())
-          .sort((a, b) => a[1] - b[1])[0][0];
-        messageCache.delete(leastFrequentHash);
-        simHashFrequencies.delete(leastFrequentHash);
-      }
-    }));
-  await Promise.all(computePromises);
-  console.log('Spam Filter Statistics:', { messageCacheSize: messageCache.size });
-}
-
-function hideElementById(id) {
-  const element = document.getElementById(id);
-  if (element) {
-    element.style.visibility = 'hidden';
-    element.style.display = 'none';
   }
 }
-
-function addUserFilteredSubstring(substring, config) {
-  config.FILTERED_SUBSTRINGS.add(substring);
-  chrome.storage.local.set({
-    config: {
-      ...config,
-      FILTERED_SUBSTRINGS: Array.from(config.FILTERED_SUBSTRINGS)
+  class SimHashGenerator {
+    constructor(fingerprintBits = 32) {
+      this.fingerprintBits = fingerprintBits;
+      this.tokenWeights = new Map();
+      this.accumulator = new Int32Array(this.fingerprintBits);
     }
-  }, () => {
-    console.log(`Added user-defined substring "${substring}" to the filter list.`);
-  });
-}
-function registerAddUserFilteredSubstringListener(config, filteredSubstrings) {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'addUserFilteredSubstring' && message.substring) {
-      addUserFilteredSubstring(message.substring, config);
-      sendResponse({ success: true });
-      return new Promise((resolve) => { resolve(); });
+  
+    compute(message) {
+      const tokens = message.match(/\b\w+\b/g) || [];
+      tokens.forEach((token) => {
+        const weight = (this.tokenWeights.get(token) || 0) + 1;
+        this.tokenWeights.set(token, weight);
+      });
+  
+      let simHash = 0n;
+      for (const [token, weight] of this.tokenWeights) {
+        const hash = token.split('').reduce((acc, char) => acc * 31 + char.charCodeAt(0), 0);
+        for (let i = 0; i < this.fingerprintBits; ++i) {
+          this.accumulator[i] += (hash & (1 << i)) ? weight : -weight;
+          if (this.accumulator[i] > 0) {
+            simHash |= 1n << BigInt(i);
+          }
+        }
+      }
+      return simHash;
     }
-  });
-}
-
-// Listener to handle changes in the configuration
-function registerConfigChangeListener(config, filteredSubstrings, messageCache, hideElementById) {
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && changes.config) {
-      const newConfig = changes.config.newValue;
-      Object.assign(config, newConfig);
-      filteredSubstrings.clear();
-      newConfig.FILTERED_SUBSTRINGS.forEach(substring => filteredSubstrings.add(substring));
-      console.log('Updated configuration from storage:', newConfig);
-      filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById);
+  
+    static hammingDistance(hash1, hash2) {
+      let xor = hash1 ^ hash2;
+      let distance = 0;
+      while (xor) {
+        distance += Number(xor & 1n);
+        xor >>= 1n;
+      }
+      return distance;
     }
-  });
-}
-
-// Error handling function
-function catchErrors() {
-  window.addEventListener('error', (error) => {
-    console.error('Error in extension:', error.message);
-  });
-}
-
-// Initialization
-(async () => {
-  const { config, substringTrie } = await loadConfig();
-  const messageCache = new Set();
-  registerAddUserFilteredSubstringListener(config, config.FILTERED_SUBSTRINGS);
-  registerConfigChangeListener(config, config.FILTERED_SUBSTRINGS, messageCache, hideElementById);
-  catchErrors();
-  await filterSpamPosts(config, substringTrie, messageCache, hideElementById);
-})();
-
-
+  
+    static async filterSpamPosts(config, substringTrie, messageCache, hideElementById, messageTables, computeSimHash, xorFilter, precomputedSimHashes, lruCache, extractPostText) {
+      const computePromises = messageTables.map((table) => {
+        const content = extractPostText(table);
+        const id = table.id || table.getAttribute('name');
+        return computeSimHash(content).then((simHash) => {
+          if (xorFilter.mayContain(content) || precomputedSimHashes.has(simHash)) {
+            return true;
+          }
+          const cachedResult = lruCache.get(content);
+          if (cachedResult) return cachedResult;
+          const isSpam = Array.from(messageCache).some(precomputedSimHash => SimHashGenerator.hammingDistance(simHash, precomputedSimHash) <= config.HAMMING_DISTANCE_THRESHOLD) ||
+            substringTrie.search(content.toLowerCase());
+          lruCache.put(content, isSpam);
+          return isSpam;
+        });
+      });
+      return Promise.all(computePromises);
+    }
+  }
+  
+  // Define a function to hide an element by ID
+  function hideElementById(id) {
+    const element = document.getElementById(id);
+    if (element) {
+      element.style.display = 'none';
+    }
+  }
+  
+  // Define a function to hide elements by selector
+  function hideElementBySelector(selector) {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach((element) => {
+      element.style.display = 'none';
+    });
+  }
+  
+  // Define a function to check if a post is spam
+  function shouldHidePost(content, author, config) {
+    return config.FILTERED_SUBSTRINGS.some(substring => content.includes(substring));
+  }
+  
+  // Handle errors.
+  function catchErrors() {
+    window.addEventListener('error', (error) => {
+      console.error('Error in extension:', error.message);
+    });
+  }
+  
+  // Main function to initialize the extension and run tests.
+  (async () => {
+    const config = await loadConfig();
+    registerAddUserFilteredSubstringListener(config);
+    registerConfigChangeListener(config, SimHashGenerator.filterSpamPosts);
+    catchErrors();
+    await SimHashGenerator.filterSpamPosts(config);
+  })();  
 // Test function for Hamming distance calculation
 function testHammingDistance() {
   const hash1 = 0b11010101n;
@@ -638,8 +778,6 @@ async function testSimHashFiltering() {
   document.body.removeChild(mockMessageTable1);
   document.body.removeChild(mockMessageTable2);
 }
-})
-
 function runTests() {
   testHammingDistance();
   testSimHashAndFiltering();

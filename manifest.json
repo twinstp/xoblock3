@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FilterXOXO_TwinstpVer",
   "description": "A Chrome extension that filters xoxo posts.",
-  "version": "1.0",
+  "version": "1.1",
   "icons": {
     "16": "logo/logo-16.png",
     "48": "logo/logo-48.png",
@@ -10,11 +10,16 @@
   },
   "options_page": "settings/settings.html",
   "action": {
-    "default_title": "FilterXOXO_TwinstpVer",
-    "default_popup": "popup/popup.html"
-  },
+      "default_title": "FilterXOXO_TwinstpVer",
+      "default_popup": "popup/popup.html"
+          },
   "permissions": [
-    "storage"
+      "tabs",
+      "contextMenus",
+      "scripting",
+      "storage",
+      "unlimitedStorage",
+      "webNavigation"
   ],
   "host_permissions": [
     "https://www.xoxohth.com/*",

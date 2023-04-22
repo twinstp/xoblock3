@@ -19,7 +19,6 @@ function registerListeners(configData) {
       sendResponse({ success: true });
     }
   });
-
   if (chrome.storage) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.config) {
@@ -36,17 +35,11 @@ function registerListeners(configData) {
 
 async function contentScript() {
   console.log('Content script loaded.');
-
-  // Load configuration and initialize trie
   const configData = await loadConfiguration();
   if (!configData) {
     return;
   }
-
-  // Apply filter to posts
   await filterSpamPosts(configData.config, configData.substringTrie);
-
-  // Register listeners
   registerListeners(configData);
 }
 

@@ -40,4 +40,3 @@ async function testComputeSHA1() {
     console.error(`computeSHA1 test failed: expected ${expectedHash}, got ${computedHash}`);
   }
 }
-testComputeSHA1();

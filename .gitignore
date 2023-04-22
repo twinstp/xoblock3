@@ -10,3 +10,4 @@ xoblock3.code-workspace
 jest.config.ts
 yarn.lock
 *.lock
+package.json
