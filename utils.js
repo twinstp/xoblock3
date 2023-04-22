@@ -407,391 +407,261 @@ class SimHashGenerator {
     catchErrors();
     await SimHashGenerator.filterSpamPosts(config);
   })();  
-// Test function for Hamming distance calculation
-function testHammingDistance() {
-  const hash1 = 0b11010101n;
-  const hash2 = 0b10101010n;
-  const expectedDistance = 7;
-  const computedDistance = hammingDistance(hash1, hash2);
-  if (computedDistance === expectedDistance) {
-    console.log('hammingDistance test passed');
-  } else {
-    console.error(`hammingDistance test failed: expected ${expectedDistance}, got ${computedDistance}`);
+  (async () => {
+    const config = await loadConfig();
+    registerAddUserFilteredSubstringListener(config);
+    registerConfigChangeListener(config, SimHashGenerator.filterSpamPosts);
+    catchErrors();
+    await SimHashGenerator.filterSpamPosts(config);
+  })();
+  
+  function testHammingDistance() {
+    const hash1 = 0b11010101n;
+    const hash2 = 0b10101010n;
+    const expectedDistance = 7;
+    const computedDistance = SimHashGenerator.hammingDistance(hash1, hash2);
+    console.assert(computedDistance === expectedDistance, 'HammingDistance test failed');
   }
-}
-
-async function testSimHashAndFiltering() {
-  const sampleText = "It's not a dysphoria. I see it in the positive way of working toward something, rather than away from something.";
-  const computedSimHash = await computeSimHash(sampleText);
-  const config = await loadConfig();
-  const isFiltered = (await Promise.all([...config.FILTERED_SUBSTRINGS].map(async substring => {
-    const precomputedSimHash = await computeSimHash(substring);
-    return hammingDistance(computedSimHash, BigInt(precomputedSimHash)) <= config.MAX_HAMMING_DISTANCE;
-  }))).some(Boolean);
-    if (isFiltered) {
-    console.log('testSimHashAndFiltering passed');
-  } else {
-    console.error('testSimHashAndFiltering failed');
+  
+  async function testSimHashAndFiltering() {
+    const sampleText = "It's not a dysphoria. I see it in the positive way of working toward something, rather than away from something.";
+    const simHashGen = new SimHashGenerator();
+    const computedSimHash = simHashGen.compute(sampleText);
+    const config = await loadConfig();
+    const isFiltered = (await Promise.all([...config.FILTERED_SUBSTRINGS].map(async (substring) => {
+      const precomputedSimHash = simHashGen.compute(substring);
+      return SimHashGenerator.hammingDistance(computedSimHash, precomputedSimHash) <= config.MAX_HAMMING_DISTANCE;
+    }))).some(Boolean);
+    console.assert(isFiltered, 'testSimHashAndFiltering failed');
   }
-}
-async function testFilterShortOrEmptyPosts() {
-  // Test the behavior with very short or empty posts
-  const config = await loadConfig();
-  const emptyPost = '';
-  const shortPost = 'Short!';
-
-  // Test filtering an empty post
-  await filterSpamPosts(config, config.FILTERED_SUBSTRINGS, new Set(), (id) => {
-    console.error('Empty post should not be filtered');
-  }, emptyPost);
-
-  // Test filtering a short post
-  await filterSpamPosts(config, config.FILTERED_SUBSTRINGS, new Set(), (id) => {
-    console.error('Short post should not be filtered');
-  }, shortPost);
-
-  console.log('testFilterShortOrEmptyPosts passed');
-}
-
-async function testStorageLimitBehavior() {
-  // Mock configuration
-  const config = {
-    MAX_CACHE_SIZE: 5, // Reduced for testing purposes
-    MIN_CONTENT_LENGTH: 10,
-    MAX_HAMMING_DISTANCE: 3,
-    FILTERED_SUBSTRINGS: [],
-  };
-
-  // Mock filteredSubstrings and messageCache
-  const filteredSubstrings = new Set();
-  const messageCache = new Set();
-
-  // Mock hideElementById function
-  const hideElementById = (id) => console.log(`Hiding post with ID: ${id}`);
-
-  // Generate sample posts
-  const samplePosts = [
-    'Test post 1',
-    'Test post 2',
-    'Test post 3',
-    'Test post 4',
-    'Test post 5',
-    'Test post 6', // This post should cause an eviction
-  ];
-
-  // Execute filterSpamPosts function for each sample post
-  for (const post of samplePosts) {
-    await filterSpamPosts(config, filteredSubstrings, messageCache, hideElementById, post);
+  
+  async function testFilterShortOrEmptyPosts() {
+    const config = await loadConfig();
+    const emptyPost = '';
+    const shortPost = 'Short!';
+    const hideElementById = () => console.error('Empty or short post should not be filtered');
+    await SimHashGenerator.filterSpamPosts(config, emptyPost, hideElementById);
+    await SimHashGenerator.filterSpamPosts(config, shortPost, hideElementById);
+    console.log('testFilterShortOrEmptyPosts passed');
   }
-
-  // Check if the cache size is within the limit
-  if (messageCache.size <= config.MAX_CACHE_SIZE) {
-    console.log('testStorageLimitBehavior passed');
-  } else {
-    console.error('testStorageLimitBehavior failed');
+  
+  async function testStorageLimitBehavior() {
+    const config = { MAX_CACHE_SIZE: 5, MIN_CONTENT_LENGTH: 10, MAX_HAMMING_DISTANCE: 3, FILTERED_SUBSTRINGS: [] };
+    const filteredSubstrings = new Set();
+    const messageCache = new Set();
+    const hideElementById = (id) => console.log(`Hiding post with ID: ${id}`);
+    const samplePosts = ['Test post 1', 'Test post 2', 'Test post 3', 'Test post 4', 'Test post 5', 'Test post 6'];
+    for (const post of samplePosts) {
+      await SimHashGenerator.filterSpamPosts(config, post, hideElementById);
+    }
+    console.assert(messageCache.size <= config.MAX_CACHE_SIZE, 'testStorageLimitBehavior failed');
   }
-}
-
-function testTrie() {
-  const trie = new Trie();
-  trie.insert("abc");
-  trie.insert("abgl");
-  trie.insert("abcdef");
-
-  // Test empty string
-  if (!trie.search("")) {
-    console.log('Empty string test passed');
-  } else {
-    console.error('Empty string test failed');
-  }
-
-  // Test search and startsWith
-  if (trie.search("abc") && trie.startsWith("ab") && !trie.search("abcf")) {
-    console.log('Search and startsWith test passed');
-  } else {
-    console.error('Search and startsWith test failed');
-  }
-
-  // Test very long string
-  const longString = "a".repeat(10000);
-  trie.insert(longString);
-  if (trie.search(longString)) {
-    console.log('Long string test passed');
-  } else {
-    console.error('Long string test failed');
-  }
-}
-function testCacheEviction() {
-  const config = loadConfig();
-  const messageCache = new Set();
-  const simHashFrequencies = new Map();
-  const maxCacheSize = config.MAX_CACHE_SIZE || 500;
-
-  // Insert more SimHashes than the MAX_CACHE_SIZE
-  for (let i = 1; i <= maxCacheSize + 5; i++) {
-    const simHash = BigInt(i);
-    messageCache.add(simHash);
-    simHashFrequencies.set(simHash, 1);
-
-    if (messageCache.size > maxCacheSize) {
-      // Evict the least frequently used SimHash
-      const leastFrequentHash = [...simHashFrequencies.entries()].sort((a, b) => a[1] - b[1])[0][0];
-      messageCache.delete(leastFrequentHash);
-      simHashFrequencies.delete(leastFrequentHash);
+  
+  class SpamFilterTests {
+    constructor() {
+      this.simHashGen = new SimHashGenerator();
+    }
+  
+    async runTests() {
+      await this.testHammingDistance();
+      await this.testSimHashAndFiltering();
+      await this.testFilterShortOrEmptyPosts();
+      await this.testStorageLimitBehavior();
+      await this.testTrie();
+      await this.testCacheEviction();
+      await this.testSimHashWithNonEnglishText();
+      await this.testSHA1();
+      await this.testUserDefinedSubstringFiltering();
+      await this.testServiceWorkerRegistration();
+      await this.testTriePrefixWithNoMatches();
+      await this.testTrieDuplicateSubstring();
+      await this.testSubstringFiltering();
+      await this.testSimHashFiltering();
+      console.log('All tests passed.');
+    }
+  
+    async testHammingDistance() {
+      const hash1 = 0b11010101n;
+      const hash2 = 0b10101010n;
+      const expectedDistance = 7;
+      const computedDistance = SimHashGenerator.hammingDistance(hash1, hash2);
+      console.assert(computedDistance === expectedDistance, 'HammingDistance test failed');
+    }
+  
+    async testSimHashAndFiltering() {
+      const sampleText = "It's not a dysphoria. I see it in the positive way of working toward something, rather than away from something.";
+      const computedSimHash = this.simHashGen.compute(sampleText);
+      const config = await loadConfig();
+      const isFiltered = (await Promise.all([...config.FILTERED_SUBSTRINGS].map((substring) => {
+        const precomputedSimHash = this.simHashGen.compute(substring);
+        return SimHashGenerator.hammingDistance(computedSimHash, precomputedSimHash) <= config.MAX_HAMMING_DISTANCE;
+      }))).some(Boolean);
+      console.assert(isFiltered, 'testSimHashAndFiltering failed');
+    }
+  
+    async testFilterShortOrEmptyPosts() {
+      const config = await loadConfig();
+      const emptyPost = '';
+      const shortPost = 'Short!';
+      const hideElementById = () => console.error('Empty or short post should not be filtered');
+      await SimHashGenerator.filterSpamPosts(config, emptyPost, hideElementById);
+      await SimHashGenerator.filterSpamPosts(config, shortPost, hideElementById);
+      console.log('testFilterShortOrEmptyPosts passed');
+    }
+  
+    async testStorageLimitBehavior() {
+      const config = { MAX_CACHE_SIZE: 5, MIN_CONTENT_LENGTH: 10, MAX_HAMMING_DISTANCE: 3, FILTERED_SUBSTRINGS: [] };
+      const messageCache = new Set();
+      const hideElementById = (id) => console.log(`Hiding post with ID: ${id}`);
+      const samplePosts = ['Test post 1', 'Test post 2', 'Test post 3', 'Test post 4', 'Test post 5', 'Test post 6'];
+      for (const post of samplePosts) {
+        await SimHashGenerator.filterSpamPosts(config, post, hideElementById);
+      }
+      console.assert(messageCache.size <= config.MAX_CACHE_SIZE, 'testStorageLimitBehavior failed');
+    }
+  
+    async testTrie() {
+      const trie = new Trie();
+      trie.insert("abc");
+      trie.insert("abgl");
+      trie.insert("abcdef");
+      console.assert(!trie.search(""), 'Empty string test failed');
+      console.assert(trie.search("abc") && trie.startsWith("ab") && !trie.search("abcf"), 'Search and startsWith test failed');
+      const longString = "a".repeat(10000);
+      trie.insert(longString);
+      console.assert(trie.search(longString), 'Long string test failed');
+    }
+  
+    async testCacheEviction() {
+      const config = await loadConfig();
+      const maxCacheSize = config.MAX_CACHE_SIZE || 500;
+      const messageCache = new Set();
+      const simHashFrequencies = new Map();
+      for (let i = 1; i <= maxCacheSize + 5; i++) {
+        const simHash = BigInt(i);
+        messageCache.add(simHash);
+        simHashFrequencies.set(simHash, 1);
+        if (messageCache.size > maxCacheSize) {
+          const leastFrequentHash = [...simHashFrequencies.entries()].sort((a, b) => a[1] - b[1])[0][0];
+          messageCache.delete(leastFrequentHash);
+          simHashFrequencies.delete(leastFrequentHash);
+        }
+      }
+      console.assert(messageCache.size <= maxCacheSize, 'Cache eviction test failed');
+    }
+  
+    async testSimHashWithNonEnglishText() {
+      const nonEnglishCharPost = 'Test नमस्ते こんにちは 你好';
+      const specialCharPost = 'Test !@#$%^&*()_+{}|:"<>?[]\\;\',./';
+      const emojiPost = 'Test 😊🌟👍';
+      const nonEnglishCharSimHash = this.simHashGen.compute(nonEnglishCharPost);
+      const specialCharSimHash = this.simHashGen.compute(specialCharPost);
+      const emojiSimHash = this.simHashGen.compute(emojiPost);
+      console.assert(
+        typeof nonEnglishCharSimHash === 'bigint' &&
+        typeof specialCharSimHash === 'bigint' &&
+        typeof emojiSimHash === 'bigint',
+        'SimHash computation with non-English text test failed'
+      );
+    }
+  
+    async testSHA1() {
+      const testCases = [
+        { message: 'Hello World!', expectedHash: '2ef7bde608ce5404e97d5f042f95f89f1c232871' },
+        { message: 'The quick brown fox jumps over the lazy dog', expectedHash: '23c4db6a5b362e96519f22a66987d019018dd06d' },
+        { message: '', expectedHash: 'da39a3ee5e6b4b0d3255bfef95601890afd80709' }
+      ];
+      for (const { message, expectedHash } of testCases) {
+        const computedHash = computeSHA1(message).toLowerCase();
+        console.assert(computedHash === expectedHash, `SHA1 test failed for message: "${message}"`);
+      }
+    }
+  
+    async testUserDefinedSubstringFiltering() {
+      const config = await loadConfig();
+      const substringTrie = new Trie();
+      const substring = "User-defined substring";
+      addUserFilteredSubstring(substring, config);
+      substringTrie.insert(substring);
+      console.assert(substringTrie.search(substring), 'User-defined substring filtering test failed');
+    }
+  
+    async testServiceWorkerRegistration() {
+      if ('serviceWorker' in navigator) {
+        try {
+          await navigator.serviceWorker.register('service-worker.js');
+        } catch (error) {
+          console.error('Service Worker registration failed:', error);
+        }
+      }
+    }
+  
+    async testTriePrefixWithNoMatches() {
+      const trie = new Trie();
+      trie.insert("apple");
+      trie.insert("orange");
+      trie.insert("banana");
+      console.assert(!trie.startsWith("grape"),
+      'Trie prefix test failed: Unexpected match');
+    }
+  
+    async testTrieDuplicateSubstring() {
+      const trie = new Trie();
+      trie.insert("apple");
+      trie.insert("apple");
+      console.assert(trie.search("apple"), 'Trie duplicate substring test failed');
+    }
+  
+    async testSubstringFiltering() {
+      const config = { MAX_CACHE_SIZE: 10, MAX_HAMMING_DISTANCE: 3, FILTERED_SUBSTRINGS: ['SpamWord'] };
+      const substringTrie = new Trie();
+      config.FILTERED_SUBSTRINGS.forEach(substring => substringTrie.insert(substring));
+      const mockMessageTable = createMockMessageTable('This is a SpamWord message', 'mockId');
+      document.body.appendChild(mockMessageTable);
+      const hideElementById = (id) => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.style.display = 'none';
+        }
+      };
+      await SimHashGenerator.filterSpamPosts(config, substringTrie, mockMessageTable, hideElementById);
+      const hiddenElement = document.getElementById('mockId');
+      console.assert(hiddenElement.style.display === 'none', 'Substring filtering test failed');
+      document.body.removeChild(mockMessageTable);
+    }
+  
+    async testSimHashFiltering() {
+      const config = { MAX_CACHE_SIZE: 10, MAX_HAMMING_DISTANCE: 3, FILTERED_SUBSTRINGS: [] };
+      const substringTrie = new Trie();
+      const messageCache = new Set();
+      const mockMessageTable1 = createMockMessageTable('This is a message with similar content', 'mockId1');
+      const mockMessageTable2 = createMockMessageTable('This is a message with similar content but a few differences', 'mockId2');
+      document.body.appendChild(mockMessageTable1);
+      document.body.appendChild(mockMessageTable2);
+      const hideElementById = (id) => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.style.display = 'none';
+        }
+      };
+      await SimHashGenerator.filterSpamPosts(config, substringTrie, messageCache, mockMessageTable1, hideElementById);
+      await SimHashGenerator.filterSpamPosts(config, substringTrie, messageCache, mockMessageTable2, hideElementById);
+      const hiddenElement = document.getElementById('mockId2');
+      console.assert(hiddenElement.style.display === 'none', 'SimHash filtering test failed');
+      document.body.removeChild(mockMessageTable1);
+      document.body.removeChild(mockMessageTable2);
+    }
+  
+    createMockMessageTable(content, id) {
+      const table = document.createElement('table');
+      table.id = id;
+      const row = table.insertRow();
+      const cell = row.insertCell();
+      cell.textContent = content;
+      return table;
     }
   }
-// Test the Trie data structure
-(() => {
-  console.log('Testing Trie data structure...');
-  const trie = new Trie();
-  trie.insert('apple');
-  trie.insert('app');
-  trie.insert('banana');
-  console.assert(trie.search('apple'), 'Search test failed: apple');
-  console.assert(trie.search('app'), 'Search test failed: app');
-  console.assert(!trie.search('appe'), 'Search test failed: appe');
-  console.assert(trie.startsWith('app'), 'StartsWith test failed: app');
-  console.assert(!trie.startsWith('banan'), 'StartsWith test failed: banan');
-  console.log('Trie data structure tests passed.');
-})();
-
-// Test the fuzzy matching algorithm
-(() => {
-  console.log('Testing fuzzy matching algorithm...');
-  console.assert(fuzzyMatch('The quick brown fox', 'quick'), 'FuzzyMatch test failed: quick');
-  console.assert(fuzzyMatch('The quick brown fox', 'qk'), 'FuzzyMatch test failed: qk');
-  console.assert(!fuzzyMatch('The quick brown fox', 'quack'), 'FuzzyMatch test failed: quack');
-  console.assert(fuzzyMatch('Special: [example]', '[ex]'), 'FuzzyMatch test failed: [ex]');
-  console.log('Fuzzy matching algorithm tests passed.');
-})();
-
-// Test the hamming distance calculation
-(() => {
-  console.log('Testing hamming distance calculation...');
-  console.assert(hammingDistance(0b110010, 0b101011) === 3, 'HammingDistance test failed: 110010 vs 101011');
-  console.assert(hammingDistance(0b10101, 0b10101) === 0, 'HammingDistance test failed: 10101 vs 10101');
-  console.assert(hammingDistance(0b11111, 0b00000) === 5, 'HammingDistance test failed: 11111 vs 00000');
-  console.log('Hamming distance calculation tests passed.');
-})();
-
-// Test user-defined substring addition and configuration changes
-(async () => {
-  console.log('Testing user-defined substring addition and configuration changes...');
-  const { config, substringTrie } = await loadConfig();
-  addUserFilteredSubstring('testing spam', config);
-  console.assert(config.FILTERED_SUBSTRINGS.has('testing spam'), 'Add user-defined substring test failed: testing spam');
-  const newConfig = { ...config, MAX_CACHE_SIZE: 600 };
-  chrome.storage.local.set({ config: newConfig });
-  console.assert(config.MAX_CACHE_SIZE === 600, 'Configuration change test failed: MAX_CACHE_SIZE');
-  console.log('User-defined substring addition and configuration changes tests passed.');
-})();
-
-// Test the filtering mechanism
-(async () => {
-  console.log('Testing filtering mechanism...');
-  const { config, substringTrie } = await loadConfig();
-  const messageCache = new Set();
-  const mockHideElementById = (id) => { console.log(`Hiding element with ID: ${id}`); };
-  const mockMessageTables = [
-    { id: 'post1', content: 'This is a normal post.' },
-    { id: 'post2', content: 'This is a spam post that contains testing spam.' },
-    { id: 'post3', content: 'This is another spam post that contains testing spam.' },
-    { id: 'post4', content: 'This is a long post with unique content.' }
-  ];
-  await filterSpamPosts(config, substringTrie, messageCache, mockHideElementById, mockMessageTables);
-  console.assert(messageCache.size === 1, 'Filtering mechanism test failed: messageCache size');
-  console.log('Filtering mechanism tests passed.');
-})();
-console.log('All tests passed.');
-
-  // Check if the cache size is within the limit
-  if (messageCache.size <= maxCacheSize) {
-    console.log('Cache eviction test passed');
-  } else {
-    console.error('Cache eviction test failed');
-  }
-}
-async function testSimHashWithNonEnglishText() {
-  const nonEnglishCharPost = 'Test नमस्ते こんにちは 你好';
-  const specialCharPost = 'Test !@#$%^&*()_+{}|:"<>?[]\\;\',./';
-  const emojiPost = 'Test 😊🌟👍';
-  const nonEnglishCharSimHash = await computeSimHash(nonEnglishCharPost);
-  const specialCharSimHash = await computeSimHash(specialCharPost);
-  const emojiSimHash = await computeSimHash(emojiPost);
-  if (typeof nonEnglishCharSimHash === 'bigint' && typeof specialCharSimHash === 'bigint' && typeof emojiSimHash === 'bigint') {
-    console.log('SimHash computation with non-English text test passed');
-  } else {
-    console.error('SimHash computation with non-English text test failed');
-  }
-}
-function testSHA1() {
-  const testCases = [
-    { message: 'Hello World!', expectedHash: '2ef7bde608ce5404e97d5f042f95f89f1c232871' },
-    { message: 'The quick brown fox jumps over the lazy dog', expectedHash: '23c4db6a5b362e96519f22a66987d019018dd06d' },
-    { message: '', expectedHash: 'da39a3ee5e6b4b0d3255bfef95601890afd80709' }
-  ];
-
-  let allPassed = true;
-  testCases.forEach(testCase => {
-    const computedHash = computeSHA1(testCase.message).toLowerCase();
-    if (computedHash === testCase.expectedHash) {
-      console.log(`SHA1 test passed for message: "${testCase.message}"`);
-    } else {
-      console.error(`SHA1 test failed for message: "${testCase.message}", expected: "${testCase.expectedHash}", got: "${computedHash}"`);
-      allPassed = false;
-    }
-  });
-
-  if (allPassed) {
-    console.log('All SHA1 tests passed');
-  } else {
-    console.error('Some SHA1 tests failed');
-  }
-}
-function testUserDefinedSubstringFiltering() {
-  const config = loadConfig();
-  const substringTrie = new Trie();
-  const substring = "User-defined substring";
-  addUserFilteredSubstring(substring, config);
-  substringTrie.insert(substring);
-  if (substringTrie.search(substring)) {
-    console.log('User-defined substring filtering test passed');
-  } else {
-    console.error('User-defined substring filtering test failed');
-  }
-}
-function testServiceWorkerRegistration() {
-  // Register service worker and catch any errors
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js').catch(error => {
-      console.error('Service Worker registration failed:', error);
-    });
-  }
-}
-function testTriePrefixWithNoMatches() {
-  const trie = new Trie();
-  trie.insert("apple");
-  trie.insert("orange");
-  trie.insert("banana");
-
-  if (trie.startsWith("grape")) {
-    console.error('Trie prefix test failed: Unexpected match');
-  } else {
-    console.log('Trie prefix test passed: No unexpected matches');
-  }
-}
-function testTrieDuplicateSubstring() {
-  const trie = new Trie();
-  trie.insert("apple");
-  trie.insert("apple");
-
-  if (trie.search("apple")) {
-    console.log('Trie duplicate substring test passed');
-  } else {
-    console.error('Trie duplicate substring test failed');
-  }
-}
-async function testFilterSpamPosts() {
-  const config = { MAX_CACHE_SIZE: 500, MAX_HAMMING_DISTANCE: 3, FILTERED_SUBSTRINGS: ['Test spam'], };
-  const substringTrie = new Trie();
-  config.FILTERED_SUBSTRINGS.forEach(substring => substringTrie.insert(substring));
-  const messageCache = new Set();
-  const hideElementById = (id) => console.log(`Hiding post with ID: ${id}`);
-  const samplePosts = ['Test post 1', 'Test post 2', 'Test spam message', 'Test post 3', ];
-  for (const post of samplePosts) {
-    const messageTable = document.createElement('table');
-    const messageCell = messageTable.insertRow().insertCell();
-    messageCell.textContent = post;
-    document.body.appendChild(messageTable);
-    await filterSpamPosts(config, substringTrie, messageCache, hideElementById);
-  }
-  document.body.innerHTML = '';
-  console.log('Filtered messages:', messageCache.size);
-  console.log('Message cache:', messageCache);
-}
-// Helper function to create a mock message table element
-function createMockMessageTable(content, id) {
-  const table = document.createElement('table');
-  table.id = id;
-  const row = table.insertRow();
-  const cell = row.insertCell();
-  cell.textContent = content;
-  return table;
-}
-
-// Test 1: Verify that spam posts containing filtered substrings are hidden
-async function testSubstringFiltering() {
-  const config = { MAX_CACHE_SIZE: 10, MAX_HAMMING_DISTANCE: 3, FILTERED_SUBSTRINGS: ['SpamWord'] };
-  const substringTrie = new Trie();
-  config.FILTERED_SUBSTRINGS.forEach(substring => substringTrie.insert(substring));
-  const messageCache = new Set();
-
-  const mockMessageTable = createMockMessageTable('This is a SpamWord message', 'mockId');
-  document.body.appendChild(mockMessageTable);
-
-  const hideElementById = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.style.display = 'none';
-    }
-  };
-
-  await filterSpamPosts(config, substringTrie, messageCache, hideElementById);
-  const hiddenElement = document.getElementById('mockId');
-  if (hiddenElement.style.display === 'none') {
-    console.log('Test 1 passed: Substring filtering works');
-  } else {
-    console.error('Test 1 failed: Substring filtering failed');
-  }
-
-  // Clean up the DOM
-  document.body.removeChild(mockMessageTable);
-}
-
-// Test 2: Verify that spam posts with similar content based on SimHash are hidden
-async function testSimHashFiltering() {
-  const config = { MAX_CACHE_SIZE: 10, MAX_HAMMING_DISTANCE: 3, FILTERED_SUBSTRINGS: [] };
-  const substringTrie = new Trie();
-  const messageCache = new Set();
-
-  const mockMessageTable1 = createMockMessageTable('This is a message with similar content', 'mockId1');
-  const mockMessageTable2 = createMockMessageTable('This is a message with similar content but a few differences', 'mockId2');
-  document.body.appendChild(mockMessageTable1);
-  document.body.appendChild(mockMessageTable2);
-
-  const hideElementById = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.style.display = 'none';
-    }
-  };
-
-  await filterSpamPosts(config, substringTrie, messageCache, hideElementById);
-  const hiddenElement = document.getElementById('mockId2');
-  if (hiddenElement.style.display === 'none') {
-    console.log('Test 2 passed: SimHash filtering works');
-  } else {
-    console.error('Test 2 failed: SimHash filtering failed');
-  }
-
-  // Clean up the DOM
-  document.body.removeChild(mockMessageTable1);
-  document.body.removeChild(mockMessageTable2);
-}
-function runTests() {
-  testHammingDistance();
-  testSimHashAndFiltering();
-  testFilterShortOrEmptyPosts();
-  testStorageLimitBehavior();
-  testTrie();
-  testFilterSpamPosts();
-  testUserDefinedSubstringFiltering();
-  testCacheEviction();
-  testSimHashWithNonEnglishText();
-  testSHA1();
-  testServiceWorkerRegistration();
-  testTriePrefixWithNoMatches();
-  testTrieDuplicateSubstring();
-  testSubstringFiltering();
-  testSimHashFiltering();
-}
+  
+  // Run the tests
+  const spamFilterTests = new SpamFilterTests();
+  spamFilterTests.runTests();  
