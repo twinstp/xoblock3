@@ -205,12 +205,10 @@ class BloomFilter {
 }
 class LRUCache {
   constructor(capacity) {
-    this.capacity = capacity; 
-    this.cache = new Map(); 
-    this.head = new Node(); 
-    this.tail = new Node(); 
-    this.head.next = this.tail; 
-    this.tail.prev = this.head; 
+    this.capacity = capacity;
+    this.cache = new Map();
+    this.head = null;
+    this.tail = null;
   }
   get(key) {
     if (!this.cache.has(key)) return null;
@@ -392,10 +390,14 @@ function registerConfigChangeListener() {
     })();
   });
 }
-filterSpamPosts();
-registerAddUserFilteredSubstringListener(config);
-registerConfigChangeListener(config, filterSpamPosts);
-catchErrors();
+
+(async () => {
+  const { config } = await loadConfig(); // Get config
+  filterSpamPosts();
+  registerAddUserFilteredSubstringListener(config);
+  registerConfigChangeListener();
+  catchErrors();
+})();
 // ##TESTS START HERE. CUT IN PRODUCTION BUILD --TWINS##
 
 
