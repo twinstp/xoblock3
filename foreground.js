@@ -21,7 +21,7 @@ function registerListeners(configData) {
     }
   });
 
-  // Listener for changes in the extension's storage
+  // Listener for configuration changes
   if (chrome.storage) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.config) {

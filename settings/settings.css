@@ -6,13 +6,12 @@ body {
 label {
   display: block;
   margin-top: 10px;
-  color: red; /* The special-text color */
+  color: red;
 }
 
-input,
-textarea { /* Apply the style to both input fields and textarea */
+input, textarea {
   width: 100%;
   padding: 5px;
-  background-color: #444; /* Adjust the background color of input and textarea */
-  color: #eee; /* Adjust the text color of input and textarea */
+  background-color: #444;
+  color: #eee;
 }
