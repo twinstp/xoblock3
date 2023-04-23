@@ -291,8 +291,7 @@ class TrieNode {
 // ##MAIN SCRIPT##
 // Load the configuration from storage
 async function loadConfig() {
-    // Log the start of the loadConfig function
-    console.log('Loading config...');
+  console.log('Loading config...');
   return new Promise((resolve) => {
     chrome.storage.local.get('config', (storedData) => {
       const initialConfig = getInitialConfig();
@@ -300,7 +299,7 @@ async function loadConfig() {
       const substringTrie = new TrieNode();
       const bloomFilter = new BloomFilter(10000, 5);
       if (Array.isArray(config.FILTERED_SUBSTRINGS)) {
-        config.FILTERED_SUBSTRINGS=config.FILTERED_SUBSTRINGS.flatMap((s)=>s.trim().split('\n'));
+        config.FILTERED_SUBSTRINGS = config.FILTERED_SUBSTRINGS.flatMap((s) => s.trim().split('\n'));
         config.FILTERED_SUBSTRINGS.forEach((substring) => {
           substringTrie.insert(substring);
           bloomFilter.add(substring);
@@ -327,20 +326,13 @@ function extractText(input) {
 
 function getPostElements() {
   const postTables = Array.from(document.querySelectorAll("table[width='700']"));
-  
   const posts = postTables.map((postTable) => {
     const id = postTable.getAttribute("id");
-    
     const dateElement = postTable.querySelector("b:contains('Date:')");
     const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-    
     const authorElement = postTable.querySelector("b:contains('Author:')");
     const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-    
-    // Find the end marker "<font size="1">(LINK TO THREAD TOP)</font>"
     const endMarker = postTable.querySelector("font[size='1']:contains('(LINK TO THREAD TOP)')");
-    
-    // If the end marker exists, extract content from the start of the post up to the end marker
     let content = null;
     if (endMarker) {
       const contentElements = [];
@@ -351,10 +343,8 @@ function getPostElements() {
       }
       content = contentElements.join(' ');
     }
-
     return { date: dateStr, author, content, id };
   });
-
   return posts.filter((post) => post.author && post.content);
 }
 
@@ -427,3 +417,4 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 });
 
 catchErrors();
+filterSpamPosts();
