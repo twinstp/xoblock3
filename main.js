@@ -164,7 +164,7 @@ class XORFilter {
     f ^= this.fingerprints[h0] ^ this.fingerprints[h1] ^ this.fingerprints[h2];
     return (f & 0xff) === 0;
   }
-}}
+}
 class BloomFilter {
   constructor(size, numHashes) {
     this.size = size;
@@ -415,48 +415,36 @@ async function filterSpamPosts() {
     }
   });
 }
+
 // Run the filterSpamPosts function when the content script is loaded.
 filterSpamPosts();
 
 // Register listeners for adding user-defined substrings to the filter list.
-function registerAddUserFilteredSubstringListener(config) {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    const { type, substring } = message;
-    if (type === 'addUserFilteredSubstring' && substring) {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const { type, substring } = message;
+  if (type === 'addUserFilteredSubstring' && substring) {
+    loadConfig().then(({ config }) => {
       config.FILTERED_SUBSTRINGS.push(substring);
       chrome.storage.local.set({ config }, () => {
         console.log(`Added user-defined substring "${substring}" to the filter list.`);
         sendResponse({ success: true });
       });
-      return true;
-    }
-  });
-}
+    });
+    return true; // Indicate that the response is async.
+  }
+});
 
-// Register a listener for configuration changes.
-function registerConfigChangeListener() {
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.config) {
-      (async () => {
-        const { config } = await loadConfig();
-        registerAddUserFilteredSubstringListener(config);
-        catchErrors();
-        await filterSpamPosts();
-      })();
-    }
-  });
-}
+// Register a listener for changes in the configuration.
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.config) {
+    // Re-run the filterSpamPosts function with the updated configuration.
+    filterSpamPosts();
+  }
+});
 
-// Run the registerConfigChangeListener function to listen for config changes.
-registerConfigChangeListener();
+// Run the catchErrors function to listen for errors.
+catchErrors();
 
-(async () => {
-  const { config } = await loadConfig(); // Get config
-  filterSpamPosts();
-  registerAddUserFilteredSubstringListener(config);
-  registerConfigChangeListener();
-  catchErrors();
-})();
 // ##TESTS START HERE. CUT IN PRODUCTION BUILD --TWINS##
 
 
@@ -477,7 +465,6 @@ async function testSimHashAndFiltering() {
 
   // Load the configuration
   const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
-  const config = configData.config;
 
   let isFiltered = false;
   if (Array.isArray(config.FILTERED_SUBSTRINGS) && config.FILTERED_SUBSTRINGS.length > 0) {
@@ -487,7 +474,7 @@ async function testSimHashAndFiltering() {
     }))).some(Boolean);
   }
   console.assert(!isFiltered, 'SimHashAndFiltering test failed');
-}  
+}
   async function testFilterShortOrEmptyPosts() {
     const config = await loadConfig();
     const emptyPost = '';
