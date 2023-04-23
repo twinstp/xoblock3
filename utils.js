@@ -2,7 +2,7 @@
 // ## SHA1 implementation (minified) - NEED TO ADD HERE NOT CALL CRYPTO OR SUBTLE JS B/C OF CPS AND MANIFEST V3
 var SHA1=
 "undefined"!=typeof exports?exports:{};!function(t){var r=[1518500249,1859775393,-1894007588,-899497514],i={sha1:1};SHA1.createHash=function(t){if(t&&!i[t]&&!i[t.toLowerCase()])throw new Error("Digest method not supported");return new s};var n,s=function(){function t(){this.A=1732584193,this.B=-271733879,this.C=-1732584194,this.D=271733878,this.E=-1009589776,this.t=0,this.i=0,(!n||e>=8e3)&&(n=new ArrayBuffer(8e3),e=0),this.h=new Uint8Array(n,e,80),this.o=new Int32Array(n,e,20),e+=80}return t.prototype.update=function(t){if("string"==typeof t)return this.u(t);if(null==t)throw new TypeError("Invalid type: "+typeof t);var r=t.byteOffset,i=t.byteLength,n=i/64|0,s=0;if(n&&!(3&r)&&!(this.t%64)){for(var h=new Int32Array(t.buffer,r,16*n);n--;)this.v(h,s>>2),s+=64;this.t+=s}if(1!==t.BYTES_PER_ELEMENT&&t.buffer){var e=new Uint8Array(t.buffer,r+s,i-s);return this.p(e)}return s===i?this:this.p(t,s)},t.prototype.p=function(t,r){var i=this.h,n=this.o,s=t.length;for(r|=0;r<s;){for(var h=this.t%64,e=h;r<s&&e<64;)i[e++]=t[r++];e>=64&&this.v(n),this.t+=e-h}return this},t.prototype.u=function(t){for(var r=this.h,i=this.o,n=t.length,s=this.i,h=0;h<n;){for(var e=this.t%64,f=e;h<n&&f<64;){var o=0|t.charCodeAt(h++);o<128?r[f++]=o:o<2048?(r[f++]=192|o>>>6,r[f++]=128|63&o):o<55296||o>57343?(r[f++]=224|o>>>12,r[f++]=128|o>>>6&63,r[f++]=128|63&o):s?(o=((1023&s)<<10)+(1023&o)+65536,r[f++]=240|o>>>18,r[f++]=128|o>>>12&63,r[f++]=128|o>>>6&63,r[f++]=128|63&o,s=0):s=o}f>=64&&(this.v(i),i[0]=i[16]),this.t+=f-e}return this.i=s,this},t.prototype.v=function(t,i){var n=this,s=n.A,e=n.B,f=n.C,w=n.D,y=n.E,A=0;for(i|=0;A<16;)h[A++]=o(t[i++]);for(A=16;A<80;A++)h[A]=u(h[A-3]^h[A-8]^h[A-14]^h[A-16]);for(A=0;A<80;A++){var p=A/20|0,d=a(s)+v(p,e,f,w)+y+h[A]+r[p]|0;y=w,w=f,f=c(e),e=s,s=d}this.A=s+this.A|0,this.B=e+this.B|0,this.C=f+this.C|0,this.D=w+this.D|0,this.E=y+this.E|0},t.prototype.digest=function(t){var r=this.h,i=this.o,n=this.t%64|0;for(r[n++]=128;3&n;)r[n++]=0;if((n>>=2)>14){for(;n<16;)i[n++]=0;n=0,this.v(i)}for(;n<16;)i[n++]=0;var s=8*this.t,h=(4294967295&s)>>>0,e=(s-h)/4294967296;return e&&(i[14]=o(e)),h&&(i[15]=o(h)),this.v(i),"hex"===t?this.I():this.U()},t.prototype.I=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E;return f(r)+f(i)+f(n)+f(s)+f(h)},t.prototype.U=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E,e=t.h,f=t.o;return f[0]=o(r),f[1]=o(i),f[2]=o(n),f[3]=o(s),f[4]=o(h),e.slice(0,20)},t}(),h=new Int32Array(80),e=0,f=function(t){return(t+4294967296).toString(16).substr(-8)},o=254===new Uint8Array(new Uint16Array([65279]).buffer)[0]?function(t){return t}:function(t){return t<<24&4278190080|t<<8&16711680|t>>8&65280|t>>24&255},u=function(t){return t<<1|t>>>31},a=function(t){return t<<5|t>>>27},c=function(t){return t<<30|t>>>2};function v(t,r,i,n){return 0===t?r&i|~r&n:2===t?r&i|r&n|i&n:r^i^n}}();
-// ##BEGIN REAL CODE##
+// Define the initial configuration for the extension.
 function getInitialConfig() {
   return {
     MAX_CACHE_SIZE: 1000,
@@ -17,6 +17,37 @@ function getInitialConfig() {
   };
 }
 
+// Initialization (loadConfig)
+async function loadConfig() {
+  try {
+    // Wrap the chrome.storage.local.get method in a Promise to use async/await.
+    const storedData = await new Promise((resolve) => {
+      chrome.storage.local.get('config', resolve);
+    });
+
+    // Retrieve the stored configuration or use the initial configuration if not found.
+    const initialConfig = getInitialConfig();
+    const config = storedData?.config || initialConfig;
+
+    // Initialize data structures with the loaded configuration.
+    const substringTrie = new TrieNode();
+    const bloomFilter = new BloomFilter(10000, 5);
+    config.FILTERED_SUBSTRINGS.forEach((substring) => {
+      substringTrie.insert(substring);
+      bloomFilter.add(substring);
+    });
+    const xorFilter = new XORFilter(config.FILTERED_SUBSTRINGS);
+    const lruCache = new LRUCache(config.MAX_CACHE_SIZE);
+    const simHashGenerator = new SimHashGenerator(config.FINGERPRINT_BITS);
+
+    // Return the loaded configuration and data structures.
+    return { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator };
+  } catch (error) {
+    // Log and handle errors while loading the configuration.
+    console.error('Error while loading configuration:', error);
+    return null;
+  }
+}
 class SimHashGenerator {
   constructor(fingerprintBits = 32) {
     this.fingerprintBits = fingerprintBits;
@@ -203,13 +234,34 @@ class BloomFilter {
     return hash % this.size;
   }
 }
+function bitCount(n) {
+  let count = 0;
+  while (n) {
+    n &= (n - 1n);
+    count++;
+  }
+  return count;
+}
+
+class Node {
+  constructor() {
+    this.key = null;
+    this.value = null;
+    this.prev = null;
+    this.next = null;
+  }
+}
+
 class LRUCache {
   constructor(capacity) {
     this.capacity = capacity;
     this.cache = new Map();
-    this.head = null;
-    this.tail = null;
+    this.head = new Node();
+    this.tail = new Node();
+    this.head.next = this.tail;
+    this.tail.prev = this.head;
   }
+
   get(key) {
     if (!this.cache.has(key)) return null;
     const node = this.cache.get(key);
@@ -283,41 +335,39 @@ class TrieNode {
     return current.isEndOfWord;
   }
 }
-// Initialization (loadConfig)
-async function loadConfig() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get('config', (storedData) => {
-      const initialConfig = getInitialConfig();
-      const config = storedData?.config || initialConfig;
-      const substringTrie = new TrieNode();
-      const bloomFilter = new BloomFilter(10000, 5);
-      config.FILTERED_SUBSTRINGS.forEach((substring) => {
-        substringTrie.insert(substring);
-        bloomFilter.add(substring);
-      });
-      const xorFilter = new XORFilter(config.FILTERED_SUBSTRINGS);
-      const lruCache = new LRUCache(config.MAX_CACHE_SIZE);
-      const simHashGenerator = new SimHashGenerator(config.FINGERPRINT_BITS);
-      resolve({ config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator });
-    });
-  });
-}
+// Escape regex special characters in a string.
 function escapeRegexSpecialCharacters(str) {
   return str.replace(/[-[\]\/{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
 
+// Get post elements from the page.
 function getPostElements() {
-  const postSelector = 'body>a>table>tbody>tr>td>font>p>a>table';
-  const postTables = document.querySelectorAll(postSelector);
-  const posts = Array.from(postTables).map((postTable) => {
-    const title = postTable.querySelector('tbody>tr:nth-child(1)>td:nth-child(2)>font>a').textContent.trim();
-    const author = postTable.querySelector('tbody>tr:nth-child(1)>td:nth-child(1)>font>b:nth-child(2)').nextSibling.textContent.trim();
-    const content = postTable.querySelector('tbody>tr:nth-child(2)>td:nth-child(2)>font>p').textContent.trim();
-    return { title, author, content };
-  });
+  // Select all post tables with width=700 on the page.
+  const postTables = document.querySelectorAll("table[width='700']");
+  // Map each post table to an object containing its date, author, and content.
+  const posts = Array.from(postTables)
+    .map((postTable) => {
+      // Extract date
+      const dateElement = postTable.querySelector("b");
+      const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
+      
+      // Extract author
+      const authorElement = postTable.querySelector("b + b");
+      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+      
+      // Extract content
+      const contentElement = authorElement ? authorElement.nextElementSibling : null;
+      const content = contentElement ? contentElement.textContent.trim() : null;
+      
+      // Return the extracted post information.
+      return { date: dateStr, author, content };
+    })
+    .filter(post => post.author && post.content); // Filter out invalid posts (missing author or content)
+  
   return posts;
 }
 
+// Hide an HTML element by its ID.
 function hideElementById(id) {
   const element = document.getElementById(id);
   if (element) {
@@ -325,47 +375,69 @@ function hideElementById(id) {
   }
 }
 
+// Determine if a post should be hidden based on its content, author, and configuration.
 function shouldHidePost(content, author, config) {
   return config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring));
 }
 
+// Catch and log errors that occur in the extension.
 function catchErrors() {
   window.addEventListener('error', (error) => {
     console.error('Error in extension:', error.message);
   });
 }
 
+// Filter out spam posts based on the loaded configuration.
 async function filterSpamPosts() {
-  const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
+  const {
+    config,
+    substringTrie,
+    xorFilter,
+    bloomFilter,
+    lruCache,
+    simHashGenerator,
+  } = await loadConfig();
+
   const posts = getPostElements();
   posts.forEach((post) => {
     const { title, author, content } = post;
+
+    // Skip posts that are below the long post threshold.
     if (content.length < config.LONG_POST_THRESHOLD) {
       return;
     }
+
+    // Hide posts that contain filtered substrings.
     if (shouldHidePost(content, author, config)) {
       hideElementById(post.id);
       return;
     }
+
+    // Calculate the simhash of the content.
     const simHash = simHashGenerator.compute(content);
     let isSpam = Array.from(lruCache.cache.keys()).some((cachedSimHash) => {
-      return SimHashGenerator.hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
+      return simHashGenerator.hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
+
+    // Check if content is spam using xorFilter and bloomFilter.
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
     }
     if (!isSpam && bloomFilter.test(simHash)) {
       isSpam = true;
     }
+
+    // Cache the spam status.
     lruCache.put(simHash, isSpam);
+
+    // Hide spam posts.
     if (isSpam) {
       hideElementById(post.id);
     }
   });
 }
-
 filterSpamPosts();
-// Function to register listener for adding user-filtered substrings
+
 function registerAddUserFilteredSubstringListener(config) {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { type, substring } = message;
@@ -383,7 +455,7 @@ function registerAddUserFilteredSubstringListener(config) {
 function registerConfigChangeListener() {
   chrome.storage.onChanged.addListener((changes, namespace) => {
     (async () => {
-      const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
+      const { config } = await loadConfig(); // Get config
       registerAddUserFilteredSubstringListener(config);
       catchErrors();
       await filterSpamPosts();
