@@ -330,48 +330,25 @@ function extractText(input) {
 }
 
 function getPostElements() {
-  const messageTables = document.querySelectorAll("table[width='700']");
-  const posts = [];
-  for (const table of messageTables) {
-    const cellspacing = table.getAttribute('cellspacing') ? 'cellspacing' : null;
-    if (cellspacing) {
-      continue;
-    }
-    const authorElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Author:');
-    const author = authorElement ? authorElement.nextSibling?.textContent?.trim() : null;
-    const dateElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Date:');
-    const dateStr = dateElement ? dateElement.nextSibling?.textContent?.trim() : null;
-    const bodyElement = table.querySelector('table font');
-    let i = 0;
-    let authorDetected = false;
-    const bodyStrings = [];
-    if (!bodyElement) {
-      continue;
-    }
-    for (const child of bodyElement.childNodes) {
-      if (i < 2) {
-        i++;
-        continue;
-      }
-      if (child.textContent && !isAllWhitespace(child.textContent)) {
-        const textContent = child.textContent;
-        if (!authorDetected) {
-          if (textContent.startsWith('Author:')) {
-            authorDetected = true;
-            i = 0;
-          }
-          continue;
-        }
-        bodyStrings.push(extractText(child.textContent));
-      }
-      i++;
-    }
-    const content = bodyStrings.join('');
-    const id = table.id;
-    posts.push({ date: dateStr, author, content, id });
-  }
-  return posts.filter(post => post.author && post.content);
+  const messageTables = Array.from(document.querySelectorAll("table[width='700']"));
+  const posts = messageTables.filter(table => !table.getAttribute('cellspacing'))
+    .map(table => {
+      const authorElement = Array.from(table.querySelectorAll('b')).find(b => b.textContent.trim() === 'Author:');
+      const author = authorElement ? authorElement.nextSibling?.textContent?.trim() : null;
+      const dateElement = Array.from(table.querySelectorAll('b')).find(b => b.textContent.trim() === 'Date:');
+      const dateStr = dateElement ? dateElement.nextSibling?.textContent?.trim() : null;
+      const bodyElement = table.querySelector('table font');
+      const bodyStrings = bodyElement ? Array.from(bodyElement.childNodes)
+        .filter(child => child.textContent && !/^\s*$/.test(child.textContent))
+        .map(child => extractText(child.textContent)) : [];
+      const content = bodyStrings.join('');
+      const id = table.getAttribute('id');
+      return { date: dateStr, author, content, id };
+    })
+    .filter(post => post.author && post.content);
+  return posts;
 }
+
 function hideElementById(id) {
   const element = document.getElementById(id);
   if (element) {
