@@ -224,12 +224,20 @@ class Node {
   }
 }
 
+class ListNode {
+  constructor(key, value) {
+    this.key = key;
+    this.value = value;
+    this.prev = null;
+    this.next = null;
+  }
+}
 class LRUCache {
   constructor(capacity) {
     this.capacity = capacity;
     this.cache = new Map();
-    this.head = new Node();
-    this.tail = new Node();
+    this.head = new ListNode();
+    this.tail = new ListNode();
     this.head.next = this.tail;
     this.tail.prev = this.head;
   }
@@ -341,28 +349,20 @@ async function loadConfig() {
 
 // Get post elements from the page.
 function getPostElements() {
-  // Select all post tables with width=700 on the page.
   const postTables = document.querySelectorAll("table[width='700']");
-  // Map each post table to an object containing its date, author, and content.
-  const posts = Array.from(postTables)
-    .map((postTable) => {
-      // Extract date
-      const dateElement = postTable.querySelector("b");
-      const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-      
-      // Extract author
-      const authorElement = postTable.querySelector("b + b");
-      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-      
-      // Extract content
-      const contentElement = authorElement ? authorElement.nextElementSibling : null;
-      const content = contentElement ? contentElement.textContent.trim() : null;
-      
-      // Return the extracted post information.
-      return { date: dateStr, author, content };
-    })
-    .filter(post => post.author && post.content); // Filter out invalid posts (missing author or content)
-  
+  const posts = Array.from(postTables).map((postTable) => {
+    const dateElement = postTable.querySelector("b");
+    const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
+
+    const authorElement = postTable.querySelector("b+b");
+    const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+
+    const contentElement = authorElement ? authorElement.nextElementSibling : null;
+    const content = contentElement ? contentElement.textContent.trim() : null;
+
+    return { date: dateStr, author, content };
+  }).filter(post => post.author && post.content);
+
   return posts;
 }
 
