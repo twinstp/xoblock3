@@ -298,7 +298,7 @@ async function loadConfig() {
       const substringTrie = new TrieNode();
       const bloomFilter = new BloomFilter(10000, 5);
       if (Array.isArray(config.FILTERED_SUBSTRINGS)) {
-        config.FILTERED_SUBSTRINGS = config.FILTERED_SUBSTRINGS.join('\n').split('\n').map((s) => s.trim());
+        config.FILTERED_SUBSTRINGS = config.FILTERED_SUBSTRINGS.flatMap((s) => s.trim().split('\n'));
         config.FILTERED_SUBSTRINGS.forEach((substring) => {
           substringTrie.insert(substring);
           bloomFilter.add(substring);
@@ -320,32 +320,26 @@ function isAllWhitespace(text) {
 
 function extractText(input) {
   const regex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
-  if (regex.test(input)) {
-    return input.replace(regex, '').trim();
-  }
-  if (input.startsWith(')')) {
-    input = input.substring(1);
-  }
-  return input;
+  return input.replace(regex, '').trim().replace(/^\)/, '');
 }
 
 function getPostElements() {
   const messageTables = Array.from(document.querySelectorAll("table[width='700']"));
-  const posts = messageTables.filter(table => !table.getAttribute('cellspacing'))
-    .map(table => {
-      const authorElement = Array.from(table.querySelectorAll('b')).find(b => b.textContent.trim() === 'Author:');
-      const author = authorElement ? authorElement.nextSibling?.textContent?.trim() : null;
-      const dateElement = Array.from(table.querySelectorAll('b')).find(b => b.textContent.trim() === 'Date:');
-      const dateStr = dateElement ? dateElement.nextSibling?.textContent?.trim() : null;
+  const posts = messageTables.filter((table) => !table.getAttribute('cellspacing'))
+    .map((table) => {
+      const authorElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Author:');
+      const author = authorElement ? authorElement.nextSibling?.textContent.trim() : null;
+      const dateElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Date:');
+      const dateStr = dateElement ? dateElement.nextSibling?.textContent.trim() : null;
       const bodyElement = table.querySelector('table font');
       const bodyStrings = bodyElement ? Array.from(bodyElement.childNodes)
-        .filter(child => child.textContent && !/^\s*$/.test(child.textContent))
-        .map(child => extractText(child.textContent)) : [];
+        .filter((child) => child.textContent && !isAllWhitespace(child.textContent))
+        .map((child) => extractText(child.textContent)) : [];
       const content = bodyStrings.join('');
-      const id = table.getAttribute('id');
+      const id = table.id;
       return { date: dateStr, author, content, id };
     })
-    .filter(post => post.author && post.content);
+    .filter((post) => post.author && post.content);
   return posts;
 }
 
@@ -369,38 +363,36 @@ async function filterSpamPosts() {
   console.log('filterSpamPosts called');
   const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
   const posts = getPostElements();
-  console.log('Retrieved posts:', posts); // Log retrieved posts
+  console.log('Retrieved posts:', posts);
   for (const post of posts) {
     const { date: dateStr, author, content, id } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
       continue;
     }
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
-      console.log('Hiding post with substring match:', post); // Log posts being hidden due to substring match
+      console.log('Hiding post with substring match:', post);
       hideElementById(id);
       continue;
     }
     const simHash = simhash(content);
-    console.log('SimHash of post:', simHash); // Log computed simHash of the post
+    console.log('SimHash of post:', simHash);
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
       return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
     if (!isSpam && xorFilter.mayContain(content)) {
-      console.log('Post detected as spam by xorFilter:', post); // Log posts detected by xorFilter
+      console.log('Post detected as spam by xorFilter:', post);
       isSpam = true;
     }
     if (!isSpam && bloomFilter.test(simHash)) {
-      console.log('Post detected as spam by bloomFilter:', post); // Log posts detected by bloomFilter
+      console.log('Post detected as spam by bloomFilter:', post);
       isSpam = true;
     }
     if (isSpam) {
-      console.log('Hiding spam post:', post); // Log posts being hidden as spam
+      console.log('Hiding spam post:', post);
       hideElementById(id);
     }
   }
 }
-
-filterSpamPosts();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const { type, substring } = message;
@@ -417,6 +409,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else {
       sendResponse({ success: false });
     }
+  } else {
+    sendResponse({ success: false });
   }
 });
 
