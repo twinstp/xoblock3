@@ -4,14 +4,14 @@ function getInitialConfig() {
   return {
     MAX_CACHE_SIZE: 1000,
     MAX_HAMMING_DISTANCE: 5,
-    LONG_POST_THRESHOLD: 500,
+    LONG_POST_THRESHOLD: 25,
     FILTERED_SUBSTRINGS: [
       'modification, and he recently agreed to answer our questions',
       'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
-      'The masculine fire and fury of World War II has given way to a period of cooling',
+      'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
       'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
       'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.'
-    ]
+        ]
   };
 }
 

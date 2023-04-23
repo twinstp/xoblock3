@@ -397,12 +397,16 @@ async function filterSpamPosts() {
     if (content.length < config.LONG_POST_THRESHOLD) {
       return;
     }
+    
+    // Substring-based filtering (First Priority)
     if (shouldHidePost(content, author, config)) {
       hideElementById(id);
       return;
     }
+
+    // Use other methods if the post passed the substring-based filtering
     const simHash = simHashGenerator.compute(content);
-    let isSpam = lruCache.getKeys().some((cachedSimHash) => {
+    let isSpam = Array.from(lruCache.cache.keys()).some((cachedSimHash) => {
       return simHashGenerator.hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
     if (!isSpam && xorFilter.mayContain(content)) {
