@@ -328,21 +328,21 @@ async function loadConfig() {
 }
 
 function getPostElements() {
-  const postTables = document.querySelectorAll("table[width='700']");
-  const posts = Array.from(postTables).map((postTable) => {
-    const dateElement = postTable.querySelector("b");
+  const postElements = document.querySelectorAll("body > a > table > tbody > tr > td > font > p");
+  const posts = Array.from(postElements).map((postElement) => {
+    // Extract the relevant details from the postElement here.
+    const dateElement = postElement.querySelector("b");
     const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-    const authorElement = postTable.querySelector("b+b");
+    const authorElement = postElement.querySelector("b + b");
     const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
     const contentElement = authorElement ? authorElement.nextElementSibling : null;
     const content = contentElement ? contentElement.textContent.trim() : null;
-    const id = postTable.id;
+    const id = postElement.closest('table').id; // Get the table's id attribute
     return { date: dateStr, author, content, id };
-  }).filter((post) => post.author && post.content);
+  }).filter(post => post.author && post.content);
   console.log('Found post elements:', posts);
   return posts;
 }
-
 // Hide an HTML element by its ID.
 function hideElementById(id) {
   const element = document.getElementById(id);
