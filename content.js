@@ -291,6 +291,8 @@ class TrieNode {
 // ##MAIN SCRIPT##
 // Load the configuration from storage
 async function loadConfig() {
+    // Log the start of the loadConfig function
+    console.log('Loading config...');
   return new Promise((resolve) => {
     chrome.storage.local.get('config', (storedData) => {
       const initialConfig = getInitialConfig();
