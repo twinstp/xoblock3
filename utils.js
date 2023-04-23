@@ -6,7 +6,14 @@ var SHA1=
 function escapeRegexSpecialCharacters(str) {
   return str.replace(/[-[\]\/{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
-
+function bitCount(n) {
+  let count = 0;
+  while (n) {
+    n &= (n - 1n);
+    count++;
+  }
+  return count;
+}
 function getInitialConfig() {
   return {
     MAX_CACHE_SIZE: 1000,
@@ -206,14 +213,6 @@ class BloomFilter {
     }
     return hash % this.size;
   }
-}
-function bitCount(n) {
-  let count = 0;
-  while (n) {
-    n &= (n - 1n);
-    count++;
-  }
-  return count;
 }
 
 class Node {
