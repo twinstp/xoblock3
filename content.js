@@ -170,40 +170,28 @@ class BloomFilter {
     this.size = size;
     this.numHashes = numHashes;
     this.bits = new Uint8Array(size / 8);
-    this.memo = new Map();
     this.seed = 12345; // Initialize seed value
   }
+
   add(element) {
     for (let i = 0; i < this.numHashes; i++) {
       const hashIdx = this.hash(element, i);
       this.bits[hashIdx >> 5] |= 1 << (hashIdx & 31);
     }
   }
+
   test(element) {
-    if (this.memo.has(element)) {
-      return this.memo.get(element);
-    }
-    // Call hash method with hashIndex 0 as an example (or use a loop for multiple hash functions)
-    const hash = this.hash(element, 0);
-    const low = 0;
-    const high = this.size - 1;
-    while (low <= high) {
-      const mid = (low + high) >> 1;
-      if ((this.bits[mid >> 5] & (1 << (mid & 31))) === 0) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
+    for (let i = 0; i < this.numHashes; i++) {
+      const hashIdx = this.hash(element, i);
+      if ((this.bits[hashIdx >> 5] & (1 << (hashIdx & 31))) === 0) {
+        return false; // One of the bits is not set, so element is not present
       }
     }
-    if (low === this.size) {
-      return false;
-    } else {
-      this.memo.set(element, true);
-      return true;
-    }
+    return true; // All bits are set, so element is possibly present
   }
+
   hash(element, hashIndex) {
-    let hash = element.charCodeAt(0) + this.seed * hashIndex; // Use this.seed
+    let hash = element.charCodeAt(0) + this.seed * hashIndex;
     for (let i = 1; i < element.length; i++) {
       hash = hash * this.seed + element.charCodeAt(i);
     }
@@ -382,63 +370,65 @@ function catchErrors() {
 
 // Filter out spam posts based on the loaded configuration.
 async function filterSpamPosts() {
-  const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
+  const {
+    config,
+    substringTrie,
+    xorFilter,
+    bloomFilter,
+    lruCache,
+    simHashGenerator,
+  } = await loadConfig();
   const posts = getPostElements();
   posts.forEach((post) => {
     const { date: dateStr, author, content, id } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
       return;
     }
-    // Apply substring-based filtering first.
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
       hideElementById(id);
       return;
     }
-    // Apply the other advanced filtering methods.
-    const simHash = BigInt(simHashGenerator.compute(content).join('')); // Convert to BigInt
+    const simHash = BigInt(simHashGenerator.compute(content).join(''));
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
-      return simHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE; // Ensure cachedSimHash is BigInt
+      return simHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE;
     });
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
     }
-    if (!isSpam && bloomFilter.test(simHash)) {
-      isSpam = true;
-    }
-    lruCache.put(simHash.toString(), isSpam); // Cache as string, BigInt not supported in Map keys
-    if (isSpam) {
-      hideElementById(id);
-    }
-  });
+    if (!isSpam && bloomFilter.test(simHash)) 
+    isSpam = true;
+  }
+  lruCache.put(simHash.toString(), isSpam);
+  if (isSpam) {
+    hideElementById(id);
+  }
+});
 }
 
 filterSpamPosts();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const { type, substring } = message;
-  if (type === 'addUserFilteredSubstring') {
-    if (typeof substring === 'string') { // Ensure substring is a string
-      loadConfig().then(({ config }) => {
-        config.FILTERED_SUBSTRINGS.push(substring);
-        chrome.storage.local.set({ config }, () => {
-          console.log(`Added user-defined substring "${substring}" to the filter list.`);
-          sendResponse({ success: true });
-        });
+const { type, substring } = message;
+if (type === 'addUserFilteredSubstring') {
+  if (typeof substring === 'string') { // Check if substring is a string
+    loadConfig().then(({ config }) => {
+      config.FILTERED_SUBSTRINGS.push(substring);
+      chrome.storage.local.set({ config }, () => {
+        console.log(`Added user-defined substring "${substring}" to the filter list.`);
+        sendResponse({ success: true });
       });
-      return true; // Indicate that the response is async.
-    } else {
-      sendResponse({ success: false }); // Indicate failure if substring is not a string
-    }
+    });
+    return true;
+  } else {
+    sendResponse({ success: false }); // Indicate failure if substring is not a string
   }
+}
 });
 
-// Register a listener for changes in the configuration.
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.config) {
-    // Re-run the filterSpamPosts function with the updated configuration.
-    filterSpamPosts();
-  }
+if (namespace === 'local' && changes.config) {
+  filterSpamPosts();
+}
 });
 
-// Run the catchErrors function to listen for errors.
 catchErrors();
