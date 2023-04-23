@@ -47,7 +47,7 @@
         "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
-      "js": ["main.js"]
+      "js": ["content.js"]
     }
   ],
   "background": {
