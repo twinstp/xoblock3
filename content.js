@@ -22,39 +22,28 @@ function getInitialConfig() {
     ],
   };
 }
-class SimHashGenerator {
-  constructor(fingerprintBits = 32) {
-    this.fingerprintBits = fingerprintBits;
-    this.tokenWeights = new Map();
-    this.accumulator = new Int32Array(this.fingerprintBits);
-  }
 
-  compute(message) {
-    const tokens = message.match(/\b\w+\b/g) || [];
-    const tokenWeights = tokens.reduce((acc, token) => {
-      const weight = (acc.get(token) || 0) + 1;
-      acc.set(token, weight);
-      return acc;
-    }, new Map());
-    const simHash = new Uint32Array(this.fingerprintBits);
-    for (const [token, weight] of tokenWeights) {
-      const hash = token.split('').reduce((acc, char) => acc * 31 + char.charCodeAt(0), 0);
-      for (let i = 0; i < this.fingerprintBits; ++i) {
-        simHash[i] += (hash & (1 << i)) ? weight : -weight;
-      }
+function simhash(message, fingerprintBits = 32) {
+  const tokens = message.match(/\b\w+\b/g) || [];
+  const accumulator = new Int32Array(fingerprintBits);
+  for (const token of tokens) {
+    let hash = token.split('').reduce((acc, char) => acc * 31 + char.charCodeAt(0), 0);
+    let bitIdx = 0;
+    while (hash > 0) {
+      accumulator[bitIdx] += (hash & 1) ? 1 : -1;
+      hash >>= 1;
+      bitIdx++;
     }
-    return simHash;
   }
+  return accumulator;
+}
 
-  static hammingDistance(hash1, hash2) {
-    let distance = 0n;
-    let xorResult = hash1 ^ hash2;
-    while (xorResult) {
-      distance += xorResult & 1n;
-      xorResult >>= 1n;
-    }
-    return distance;
+function hammingDistance(hash1, hash2) {
+  let distance = 0;
+  for (let i = 0; i < hash1.length; ++i) {
+    distance += (hash1[i] !== hash2[i]) ? 1 : 0;
   }
+  return distance;
 }
 class XORFilter {
   constructor(keys, seed = 123456789) {
@@ -299,7 +288,6 @@ class TrieNode {
     return current.isEndOfWord;
   }
 }
-
 // ##MAIN SCRIPT##
 // Load the configuration from storage
 async function loadConfig() {
@@ -385,7 +373,6 @@ function getPostElements() {
   }
   return posts.filter(post => post.author && post.content);
 }
-// Hide an HTML element by its ID.
 function hideElementById(id) {
   const element = document.getElementById(id);
   if (element) {
@@ -393,7 +380,6 @@ function hideElementById(id) {
   }
 }
 
-// Catch and log errors that occur in the extension.
 function catchErrors() {
   window.addEventListener('error', (error) => {
     console.error('Error in extension:', error.message);
@@ -402,21 +388,27 @@ function catchErrors() {
 
 async function filterSpamPosts() {
   console.log('filterSpamPosts called');
-  const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
+  const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
   const posts = getPostElements();
-  posts.forEach((post) => {
+  const simHashMemo = new Map(); // Memoization for simHashes
+  for (const post of posts) {
     const { date: dateStr, author, content, id } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
-      return;
+      continue;
     }
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
       hideElementById(id);
-      return;
+      continue;
     }
-    const simHash = BigInt(simHashGenerator.compute(content).join(''));
+    let simHash;
+    if (simHashMemo.has(content)) {
+      simHash = simHashMemo.get(content);
+    } else {
+      simHash = simhash(content);
+      simHashMemo.set(content, simHash);
+    }
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
-      // Call hammingDistance using the class name directly
-      return SimHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE;
+      return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
@@ -424,11 +416,10 @@ async function filterSpamPosts() {
     if (!isSpam && bloomFilter.test(simHash)) {
       isSpam = true;
     }
-    lruCache.put(simHash.toString(), isSpam);
     if (isSpam) {
       hideElementById(id);
     }
-  });
+  }
 }
 
 filterSpamPosts();
