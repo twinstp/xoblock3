@@ -44,15 +44,15 @@ class SimHashGenerator {
     return simHash;
   }
 
-// Updated hammingDistance method
-static hammingDistance(hash1, hash2) {
-  let distance = 0n;
-  let xorResult = hash1 ^ hash2;
-  while (xorResult) {
-    distance += xorResult & 1n;
-    xorResult >>= 1n;
+  static hammingDistance(hash1, hash2) {
+    let distance = 0n;
+    let xorResult = hash1 ^ hash2;
+    while (xorResult) {
+      distance += xorResult & 1n;
+      xorResult >>= 1n;
+    }
+    return distance;
   }
-  return distance;
 }
 class XORFilter {
   constructor(keys, seed = 123456789) {
@@ -100,7 +100,6 @@ class XORFilter {
         }
       }
     }
-
     const reverseOrder = [];
     const reverseH = [];
 
@@ -162,7 +161,7 @@ class XORFilter {
     f ^= this.fingerprints[h0] ^ this.fingerprints[h1] ^ this.fingerprints[h2];
     return (f & 0xff) === 0;
   }
-}
+}}
 class BloomFilter {
   constructor(size, numHashes) {
     this.size = size;
@@ -334,7 +333,7 @@ async function loadConfig() {
         console.error('config.FILTERED_SUBSTRINGS is not defined or not an array');
       }
       
-      const xorFilter = new XORFilter(config.FILTERED_SUBSTRINGS);
+      const xorFilter = new XORFilter(Array.from(config.FILTERED_SUBSTRINGS));
       const lruCache = new LRUCache(config.MAX_CACHE_SIZE);
       const simHashGenerator = new SimHashGenerator(config.FINGERPRINT_BITS);
 
@@ -389,37 +388,71 @@ function catchErrors() {
 }
 
 // Filter out spam posts based on the loaded configuration.
-async function filterSpamPosts() {
-  const {
-    config,
-    substringTrie,
-    xorFilter,
-    bloomFilter,
-    lruCache,
-    simHashGenerator,
-  } = await loadConfig();
+// Get post elements from the page.
+async function getPostElements() {
+  const postTables = await document.querySelectorAll("table[width='700']");
+  const posts = Array.from(postTables).map((postTable) => {
+    const dateElement = postTable.querySelector("b");
+    const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
+    const authorElement = postTable.querySelector("b+b");
+    const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+    const contentElement = authorElement ? authorElement.nextElementSibling : null;
+    const content = contentElement ? contentElement.textContent.trim() : null;
+    const id = postTable.id;
+    // Extract the 'id' attribute from the postTable element
+    return {
+      date: dateStr,
+      author,
+      content,
+      id,
+    };
+    // Include the 'id' in the returned object
+  }).filter(post => post.author && post.content);
+  return posts;
+}
 
+// Hide an HTML element by its ID.
+function hideElementById(id) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.style.display = 'none';
+  }
+}
+
+// Determine if a post should be hidden based on its content, author, and configuration.
+function shouldHidePost(content, author, config) {
+  return config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring));
+}
+
+// Catch and log errors that occur in the extension.
+function catchErrors() {
+  window.addEventListener('error', (error) => {
+    console.error('Error in extension:', error.message);
+  });
+}
+
+// Filter out spam posts based on the loaded configuration.
+async function filterSpamPosts() {
+  const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
   const posts = getPostElements();
   posts.forEach((post) => {
-    const { title, author, content } = post;
-
+    const { date: dateStr, author, content, id } = post;
+    // Extract the 'id' attribute from the post object
     // Skip posts that are below the long post threshold.
     if (content.length < config.LONG_POST_THRESHOLD) {
       return;
     }
-
     // Hide posts that contain filtered substrings.
     if (shouldHidePost(content, author, config)) {
-      hideElementById(post.id);
+      hideElementById(id);
+      // Pass the 'id' to the hideElementById function
       return;
     }
-
     // Calculate the simhash of the content.
     const simHash = simHashGenerator.compute(content);
     let isSpam = Array.from(lruCache.cache.keys()).some((cachedSimHash) => {
       return simHashGenerator.hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
-
     // Check if content is spam using xorFilter and bloomFilter.
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
@@ -427,13 +460,12 @@ async function filterSpamPosts() {
     if (!isSpam && bloomFilter.test(simHash)) {
       isSpam = true;
     }
-
     // Cache the spam status.
     lruCache.put(simHash, isSpam);
-
     // Hide spam posts.
     if (isSpam) {
-      hideElementById(post.id);
+      hideElementById(id);
+      // Pass the 'id' to the hideElementById function
     }
   });
 }
@@ -490,7 +522,7 @@ async function testSimHashAndFiltering() {
   const computedSimHash = simHashGen.compute(content);
 
   // Load the configuration
-  const configData = await loadConfig();
+  const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
   const config = configData.config;
 
   let isFiltered = false;
