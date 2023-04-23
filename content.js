@@ -309,7 +309,6 @@ async function loadConfig() {
       }
       const xorFilter = new XORFilter(Array.from(config.FILTERED_SUBSTRINGS));
       const lruCache = new LRUCache(config.MAX_CACHE_SIZE);
-      // Removed simHashGenerator variable
       resolve({ config, substringTrie, xorFilter, bloomFilter, lruCache });
     });
   });
@@ -376,7 +375,10 @@ function getPostElements() {
 function hideElementById(id) {
   const element = document.getElementById(id);
   if (element) {
+    console.log('Hiding element with ID:', id);
     element.style.display = 'none';
+  } else {
+    console.log('Element not found for ID:', id);
   }
 }
 
@@ -390,26 +392,32 @@ async function filterSpamPosts() {
   console.log('filterSpamPosts called');
   const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
   const posts = getPostElements();
+  console.log('Retrieved posts:', posts); // Log retrieved posts
   for (const post of posts) {
     const { date: dateStr, author, content, id } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
       continue;
     }
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
+      console.log('Hiding post with substring match:', post); // Log posts being hidden due to substring match
       hideElementById(id);
       continue;
     }
-    const simHash = simhash(content); // Use the standalone simhash function
+    const simHash = simhash(content);
+    console.log('SimHash of post:', simHash); // Log computed simHash of the post
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
-      return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE; // Use the standalone hammingDistance function
+      return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
     if (!isSpam && xorFilter.mayContain(content)) {
+      console.log('Post detected as spam by xorFilter:', post); // Log posts detected by xorFilter
       isSpam = true;
     }
     if (!isSpam && bloomFilter.test(simHash)) {
+      console.log('Post detected as spam by bloomFilter:', post); // Log posts detected by bloomFilter
       isSpam = true;
     }
     if (isSpam) {
+      console.log('Hiding spam post:', post); // Log posts being hidden as spam
       hideElementById(id);
     }
   }
