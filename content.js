@@ -309,8 +309,8 @@ async function loadConfig() {
       }
       const xorFilter = new XORFilter(Array.from(config.FILTERED_SUBSTRINGS));
       const lruCache = new LRUCache(config.MAX_CACHE_SIZE);
-      const simHashGenerator = new SimHashGenerator(config.FINGERPRINT_BITS);
-      resolve({ config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator });
+      // Removed simHashGenerator variable
+      resolve({ config, substringTrie, xorFilter, bloomFilter, lruCache });
     });
   });
 }
