@@ -171,21 +171,20 @@ class BloomFilter {
     this.numHashes = numHashes;
     this.bits = new Uint8Array(size / 8);
     this.memo = new Map();
+    this.seed = 12345; // Initialize seed value
   }
-
   add(element) {
     for (let i = 0; i < this.numHashes; i++) {
       const hashIdx = this.hash(element, i);
       this.bits[hashIdx >> 5] |= 1 << (hashIdx & 31);
     }
   }
-
   test(element) {
     if (this.memo.has(element)) {
       return this.memo.get(element);
     }
-
-    const hash = this.hash(element);
+    // Call hash method with hashIndex 0 as an example (or use a loop for multiple hash functions)
+    const hash = this.hash(element, 0);
     const low = 0;
     const high = this.size - 1;
     while (low <= high) {
@@ -203,16 +202,14 @@ class BloomFilter {
       return true;
     }
   }
-
   hash(element, hashIndex) {
-    let hash = element.charCodeAt(0) + this.seed * hashIndex; // Change 'const' to 'let'
+    let hash = element.charCodeAt(0) + this.seed * hashIndex; // Use this.seed
     for (let i = 1; i < element.length; i++) {
       hash = hash * this.seed + element.charCodeAt(i);
     }
     return hash % this.size;
   }
 }
-
 class Node {
   constructor() {
     this.key = null;
@@ -376,11 +373,6 @@ function hideElementById(id) {
   }
 }
 
-// Determine if a post should be hidden based on its content, author, and configuration.
-function shouldHidePost(content, author, config) {
-  return config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring));
-}
-
 // Catch and log errors that occur in the extension.
 function catchErrors() {
   window.addEventListener('error', (error) => {
@@ -397,17 +389,15 @@ async function filterSpamPosts() {
     if (content.length < config.LONG_POST_THRESHOLD) {
       return;
     }
-    
-    // Substring-based filtering (First Priority)
-    if (shouldHidePost(content, author, config)) {
+    // Apply substring-based filtering first.
+    if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
       hideElementById(id);
       return;
     }
-
-    // Use other methods if the post passed the substring-based filtering
-    const simHash = simHashGenerator.compute(content);
-    let isSpam = Array.from(lruCache.cache.keys()).some((cachedSimHash) => {
-      return simHashGenerator.hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
+    // Apply the other advanced filtering methods.
+    const simHash = BigInt(simHashGenerator.compute(content).join('')); // Convert to BigInt
+    let isSpam = lruCache.getKeys().some((cachedSimHash) => {
+      return simHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE; // Ensure cachedSimHash is BigInt
     });
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
@@ -415,28 +405,30 @@ async function filterSpamPosts() {
     if (!isSpam && bloomFilter.test(simHash)) {
       isSpam = true;
     }
-    lruCache.put(simHash, isSpam);
+    lruCache.put(simHash.toString(), isSpam); // Cache as string, BigInt not supported in Map keys
     if (isSpam) {
       hideElementById(id);
     }
   });
 }
 
-// Run the filterSpamPosts function when the content script is loaded.
 filterSpamPosts();
 
-// Register listeners for adding user-defined substrings to the filter list.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const { type, substring } = message;
-  if (type === 'addUserFilteredSubstring' && substring) {
-    loadConfig().then(({ config }) => {
-      config.FILTERED_SUBSTRINGS.push(substring);
-      chrome.storage.local.set({ config }, () => {
-        console.log(`Added user-defined substring "${substring}" to the filter list.`);
-        sendResponse({ success: true });
+  if (type === 'addUserFilteredSubstring') {
+    if (typeof substring === 'string') { // Ensure substring is a string
+      loadConfig().then(({ config }) => {
+        config.FILTERED_SUBSTRINGS.push(substring);
+        chrome.storage.local.set({ config }, () => {
+          console.log(`Added user-defined substring "${substring}" to the filter list.`);
+          sendResponse({ success: true });
+        });
       });
-    });
-    return true; // Indicate that the response is async.
+      return true; // Indicate that the response is async.
+    } else {
+      sendResponse({ success: false }); // Indicate failure if substring is not a string
+    }
   }
 });
 
