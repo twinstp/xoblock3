@@ -415,7 +415,8 @@ async function filterSpamPosts() {
     }
     const simHash = BigInt(simHashGenerator.compute(content).join(''));
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
-      return simHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE;
+      // Call hammingDistance using the class name directly
+      return SimHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE;
     });
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
