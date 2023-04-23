@@ -321,10 +321,17 @@ async function loadConfig() {
       // Initialize data structures with the loaded configuration.
       const substringTrie = new TrieNode();
       const bloomFilter = new BloomFilter(10000, 5);
-      config.FILTERED_SUBSTRINGS.forEach((substring) => {
-        substringTrie.insert(substring);
-        bloomFilter.add(substring);
-      });
+      
+      // Ensure that FILTERED_SUBSTRINGS is defined and is an array
+      if (Array.isArray(config.FILTERED_SUBSTRINGS)) {
+        config.FILTERED_SUBSTRINGS.forEach((substring) => {
+          substringTrie.insert(substring);
+          bloomFilter.add(substring);
+        });
+      } else {
+        console.error('config.FILTERED_SUBSTRINGS is not defined or not an array');
+      }
+      
       const xorFilter = new XORFilter(config.FILTERED_SUBSTRINGS);
       const lruCache = new LRUCache(config.MAX_CACHE_SIZE);
       const simHashGenerator = new SimHashGenerator(config.FINGERPRINT_BITS);
@@ -340,7 +347,6 @@ async function loadConfig() {
     });
   });
 }
-
 // Get post elements from the page.
 function getPostElements() {
   const postTables = document.querySelectorAll("table[width='700']");
