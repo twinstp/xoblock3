@@ -384,51 +384,57 @@ async function filterSpamPosts() {
     if (content.length < config.LONG_POST_THRESHOLD) {
       return;
     }
+    // Check for known substrings first
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
       hideElementById(id);
       return;
     }
+    // Generate simHash for the content
     const simHash = BigInt(simHashGenerator.compute(content).join(''));
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
       return simHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE;
     });
+    // Use XOR filter and Bloom filter for advanced filtering
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
     }
-    if (!isSpam && bloomFilter.test(simHash)) 
-    isSpam = true;
-  }
-  lruCache.put(simHash.toString(), isSpam);
-  if (isSpam) {
-    hideElementById(id);
-  }
-});
+    if (!isSpam && bloomFilter.test(simHash)) {
+      isSpam = true;
+    }
+    // Update LRU cache
+    lruCache.put(simHash.toString(), isSpam);
+    // Hide spam posts
+    if (isSpam) {
+      hideElementById(id);
+    }
+  });
 }
 
 filterSpamPosts();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-const { type, substring } = message;
-if (type === 'addUserFilteredSubstring') {
-  if (typeof substring === 'string') { // Check if substring is a string
-    loadConfig().then(({ config }) => {
-      config.FILTERED_SUBSTRINGS.push(substring);
-      chrome.storage.local.set({ config }, () => {
-        console.log(`Added user-defined substring "${substring}" to the filter list.`);
-        sendResponse({ success: true });
+  const { type, substring } = message;
+  if (type === 'addUserFilteredSubstring') {
+    if (typeof substring === 'string') { // Check if substring is a string
+      loadConfig().then(({ config }) => {
+        config.FILTERED_SUBSTRINGS.push(substring);
+        chrome.storage.local.set({ config }, () => {
+          console.log(`Added user-defined substring "${substring}" to the filter list.`);
+          sendResponse({ success: true });
+        });
       });
-    });
-    return true;
-  } else {
-    sendResponse({ success: false }); // Indicate failure if substring is not a string
+      return true; // Indicate that the response is asynchronous
+    } else {
+      sendResponse({ success: false }); // Indicate failure if substring is not a string
+    }
   }
-}
 });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
-if (namespace === 'local' && changes.config) {
-  filterSpamPosts();
-}
+  if (namespace === 'local' && changes.config) {
+    // Re-run the filterSpamPosts function with the updated configuration
+    filterSpamPosts();
+  }
 });
 
 catchErrors();
