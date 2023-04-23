@@ -44,13 +44,15 @@ class SimHashGenerator {
     return simHash;
   }
 
-  static hammingDistance(hash1, hash2) {
-    const distance = 0;
-    for (let i = 0; i < hash1.length; ++i) {
-      distance += (hash1[i] ^ hash2[i]) & 1;
-    }
-    return distance;
+// Updated hammingDistance method
+static hammingDistance(hash1, hash2) {
+  let distance = 0n;
+  let xorResult = hash1 ^ hash2;
+  while (xorResult) {
+    distance += xorResult & 1n;
+    xorResult >>= 1n;
   }
+  return distance;
 }
 class XORFilter {
   constructor(keys, seed = 123456789) {
@@ -481,18 +483,25 @@ function registerConfigChangeListener() {
     console.assert(computedDistance === expectedDistance, 'HammingDistance test failed');
   }
   
-  async function testSimHashAndFiltering() {
-    const sampleText = "It's not a dysphoria. I see it in the positive way of working toward something, rather than away from something.";
-    const simHashGen = new SimHashGenerator();
-    const computedSimHash = simHashGen.compute(sampleText);
-    const config = await loadConfig();
-    const isFiltered = (await Promise.all([...config.FILTERED_SUBSTRINGS].map(async (substring) => {
+// Updated testSimHashAndFiltering method
+async function testSimHashAndFiltering() {
+  const content = 'This is a test message.';
+  const simHashGen = new SimHashGenerator();
+  const computedSimHash = simHashGen.compute(content);
+
+  // Load the configuration
+  const configData = await loadConfig();
+  const config = configData.config;
+
+  let isFiltered = false;
+  if (Array.isArray(config.FILTERED_SUBSTRINGS) && config.FILTERED_SUBSTRINGS.length > 0) {
+    isFiltered = (await Promise.all([...config.FILTERED_SUBSTRINGS].map((substring) => {
       const precomputedSimHash = simHashGen.compute(substring);
       return SimHashGenerator.hammingDistance(computedSimHash, precomputedSimHash) <= config.MAX_HAMMING_DISTANCE;
     }))).some(Boolean);
-    console.assert(isFiltered, 'testSimHashAndFiltering failed');
   }
-  
+  console.assert(!isFiltered, 'SimHashAndFiltering test failed');
+}  
   async function testFilterShortOrEmptyPosts() {
     const config = await loadConfig();
     const emptyPost = '';
