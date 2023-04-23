@@ -8,7 +8,6 @@ function escapeRegexSpecialCharacters(str) {
   return str.replace(/[-[\]\/{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
 
-// Define the initial configuration
 function getInitialConfig() {
   return {
     MAX_CACHE_SIZE: 1000,
@@ -19,8 +18,8 @@ function getInitialConfig() {
       'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
       'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
       'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
-      'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.'
-        ]
+      'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
+    ],
   };
 }
 class SimHashGenerator {
@@ -310,34 +309,24 @@ async function loadConfig() {
       const config = storedData?.config || initialConfig;
       const substringTrie = new TrieNode();
       const bloomFilter = new BloomFilter(10000, 5);
-
       if (Array.isArray(config.FILTERED_SUBSTRINGS)) {
-        config.FILTERED_SUBSTRINGS = config.FILTERED_SUBSTRINGS.join('\n').split('\n').map(s => s.trim());
+        config.FILTERED_SUBSTRINGS = config.FILTERED_SUBSTRINGS.join('\n').split('\n').map((s) => s.trim());
         config.FILTERED_SUBSTRINGS.forEach((substring) => {
           substringTrie.insert(substring);
           bloomFilter.add(substring);
         });
+        console.log('Loaded FILTERED_SUBSTRINGS:', config.FILTERED_SUBSTRINGS);
       } else {
         console.error('config.FILTERED_SUBSTRINGS is not defined or not an array');
       }
-
       const xorFilter = new XORFilter(Array.from(config.FILTERED_SUBSTRINGS));
       const lruCache = new LRUCache(config.MAX_CACHE_SIZE);
       const simHashGenerator = new SimHashGenerator(config.FINGERPRINT_BITS);
-
-      resolve({
-        config,
-        substringTrie,
-        xorFilter,
-        bloomFilter,
-        lruCache,
-        simHashGenerator
-      });
+      resolve({ config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator });
     });
   });
 }
 
-// Get post elements from the page.
 function getPostElements() {
   const postTables = document.querySelectorAll("table[width='700']");
   const posts = Array.from(postTables).map((postTable) => {
@@ -349,7 +338,8 @@ function getPostElements() {
     const content = contentElement ? contentElement.textContent.trim() : null;
     const id = postTable.id;
     return { date: dateStr, author, content, id };
-  }).filter(post => post.author && post.content);
+  }).filter((post) => post.author && post.content);
+  console.log('Found post elements:', posts);
   return posts;
 }
 
@@ -368,42 +358,30 @@ function catchErrors() {
   });
 }
 
-// Filter out spam posts based on the loaded configuration.
 async function filterSpamPosts() {
-  const {
-    config,
-    substringTrie,
-    xorFilter,
-    bloomFilter,
-    lruCache,
-    simHashGenerator,
-  } = await loadConfig();
+  console.log('filterSpamPosts called');
+  const { config, substringTrie, xorFilter, bloomFilter, lruCache, simHashGenerator } = await loadConfig();
   const posts = getPostElements();
   posts.forEach((post) => {
     const { date: dateStr, author, content, id } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
       return;
     }
-    // Check for known substrings first
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
       hideElementById(id);
       return;
     }
-    // Generate simHash for the content
     const simHash = BigInt(simHashGenerator.compute(content).join(''));
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
       return simHashGenerator.hammingDistance(simHash, BigInt(cachedSimHash)) <= config.MAX_HAMMING_DISTANCE;
     });
-    // Use XOR filter and Bloom filter for advanced filtering
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
     }
     if (!isSpam && bloomFilter.test(simHash)) {
       isSpam = true;
     }
-    // Update LRU cache
     lruCache.put(simHash.toString(), isSpam);
-    // Hide spam posts
     if (isSpam) {
       hideElementById(id);
     }
@@ -415,7 +393,7 @@ filterSpamPosts();
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const { type, substring } = message;
   if (type === 'addUserFilteredSubstring') {
-    if (typeof substring === 'string') { // Check if substring is a string
+    if (typeof substring === 'string') {
       loadConfig().then(({ config }) => {
         config.FILTERED_SUBSTRINGS.push(substring);
         chrome.storage.local.set({ config }, () => {
@@ -423,16 +401,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: true });
         });
       });
-      return true; // Indicate that the response is asynchronous
+      return true;
     } else {
-      sendResponse({ success: false }); // Indicate failure if substring is not a string
+      sendResponse({ success: false });
     }
   }
 });
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.config) {
-    // Re-run the filterSpamPosts function with the updated configuration
+    console.log('Storage changed, re-filtering spam posts');
     filterSpamPosts();
   }
 });
