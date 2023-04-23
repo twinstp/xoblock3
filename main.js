@@ -284,7 +284,9 @@ class LRUCache {
     if (this.tail) this.tail = this.tail.prev;
     if (this.tail) this.tail.next = null;
   }
-}
+  getKeys() {
+    return Array.from(this.cache.keys());
+}}
 class TrieNode {
   constructor() {
     this.children = new Map();
@@ -400,7 +402,7 @@ async function filterSpamPosts() {
       return;
     }
     const simHash = simHashGenerator.compute(content);
-    let isSpam = Array.from(lruCache.cache.keys()).some((cachedSimHash) => {
+    let isSpam = lruCache.getKeys().some((cachedSimHash) => {
       return simHashGenerator.hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
     if (!isSpam && xorFilter.mayContain(content)) {
