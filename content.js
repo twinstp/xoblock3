@@ -390,7 +390,6 @@ async function filterSpamPosts() {
   console.log('filterSpamPosts called');
   const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
   const posts = getPostElements();
-  const simHashMemo = new Map(); // Memoization for simHashes
   for (const post of posts) {
     const { date: dateStr, author, content, id } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
@@ -400,15 +399,9 @@ async function filterSpamPosts() {
       hideElementById(id);
       continue;
     }
-    let simHash;
-    if (simHashMemo.has(content)) {
-      simHash = simHashMemo.get(content);
-    } else {
-      simHash = simhash(content);
-      simHashMemo.set(content, simHash);
-    }
+    const simHash = simhash(content); // Use the standalone simhash function
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
-      return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
+      return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE; // Use the standalone hammingDistance function
     });
     if (!isSpam && xorFilter.mayContain(content)) {
       isSpam = true;
