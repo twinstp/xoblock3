@@ -6,14 +6,6 @@ var SHA1=
 function escapeRegexSpecialCharacters(str) {
   return str.replace(/[-[\]\/{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
-function bitCount(n) {
-  let count = 0;
-  while (n) {
-    n &= (n - 1n);
-    count++;
-  }
-  return count;
-}
 function getInitialConfig() {
   return {
     MAX_CACHE_SIZE: 1000,
@@ -37,25 +29,27 @@ class SimHashGenerator {
 
   compute(message) {
     const tokens = message.match(/\b\w+\b/g) || [];
-    tokens.forEach((token) => {
-      const weight = (this.tokenWeights.get(token) || 0) + 1;
-      this.tokenWeights.set(token, weight);
-    });
-    let simHash = 0n;
-    for (const [token, weight] of this.tokenWeights) {
+    const tokenWeights = tokens.reduce((acc, token) => {
+      const weight = (acc.get(token) || 0) + 1;
+      acc.set(token, weight);
+      return acc;
+    }, new Map());
+    const simHash = new Uint32Array(this.fingerprintBits);
+    for (const [token, weight] of tokenWeights) {
       const hash = token.split('').reduce((acc, char) => acc * 31 + char.charCodeAt(0), 0);
       for (let i = 0; i < this.fingerprintBits; ++i) {
-        this.accumulator[i] += (hash & (1 << i)) ? weight : -weight;
-        if (this.accumulator[i] > 0) {
-          simHash |= 1n << BigInt(i);
-        }
+        simHash[i] += (hash & (1 << i)) ? weight : -weight;
       }
     }
     return simHash;
   }
 
   static hammingDistance(hash1, hash2) {
-    return BigInt(bitCount(hash1 ^ hash2));
+    const distance = 0;
+    for (let i = 0; i < hash1.length; ++i) {
+      distance += (hash1[i] ^ hash2[i]) & 1;
+    }
+    return distance;
   }
 }
 class XORFilter {
@@ -236,8 +230,8 @@ class LRUCache {
   constructor(capacity) {
     this.capacity = capacity;
     this.cache = new Map();
-    this.head = new ListNode();
-    this.tail = new ListNode();
+    this.head = new ListNode(null, null);
+    this.tail = new ListNode(null, null);
     this.head.next = this.tail;
     this.tail.prev = this.head;
   }
