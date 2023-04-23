@@ -19,7 +19,7 @@ function getInitialConfig() {
       'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
       'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
       'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
-    ],
+    ]
   };
 }
 
@@ -300,7 +300,7 @@ async function loadConfig() {
       const substringTrie = new TrieNode();
       const bloomFilter = new BloomFilter(10000, 5);
       if (Array.isArray(config.FILTERED_SUBSTRINGS)) {
-        config.FILTERED_SUBSTRINGS = config.FILTERED_SUBSTRINGS.flatMap((s) => s.trim().split('\n'));
+        config.FILTERED_SUBSTRINGS=config.FILTERED_SUBSTRINGS.flatMap((s)=>s.trim().split('\n'));
         config.FILTERED_SUBSTRINGS.forEach((substring) => {
           substringTrie.insert(substring);
           bloomFilter.add(substring);
@@ -326,33 +326,36 @@ function extractText(input) {
 }
 
 function getPostElements() {
-  const messageTables = Array.from(document.querySelectorAll("table[width='700']"));
-  const posts = messageTables.filter((table) => !table.getAttribute('cellspacing'))
-    .map((table) => {
-      const authorElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Author:');
-      const author = authorElement ? authorElement.nextSibling?.textContent.trim() : null;
-      const dateElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Date:');
-      const dateStr = dateElement ? dateElement.nextSibling?.textContent.trim() : null;
-      const bodyElement = table.querySelector('table font');
-      const bodyStrings = bodyElement ? Array.from(bodyElement.childNodes)
-        .filter((child) => child.textContent && !isAllWhitespace(child.textContent))
-        .map((child) => extractText(child.textContent)) : [];
-      const content = bodyStrings.join('');
-      const id = table.id;
-      return { date: dateStr, author, content, id };
-    })
-    .filter((post) => post.author && post.content);
-  return posts;
-}
+  const postTables = Array.from(document.querySelectorAll("table[width='700']"));
+  
+  const posts = postTables.map((postTable) => {
+    const id = postTable.getAttribute("id");
+    
+    const dateElement = postTable.querySelector("b:contains('Date:')");
+    const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
+    
+    const authorElement = postTable.querySelector("b:contains('Author:')");
+    const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+    
+    // Find the end marker "<font size="1">(LINK TO THREAD TOP)</font>"
+    const endMarker = postTable.querySelector("font[size='1']:contains('(LINK TO THREAD TOP)')");
+    
+    // If the end marker exists, extract content from the start of the post up to the end marker
+    let content = null;
+    if (endMarker) {
+      const contentElements = [];
+      let currentElement = postTable;
+      while (currentElement && currentElement !== endMarker) {
+        contentElements.push(currentElement.textContent.trim());
+        currentElement = currentElement.nextElementSibling;
+      }
+      content = contentElements.join(' ');
+    }
 
-function hideElementById(id) {
-  const element = document.getElementById(id);
-  if (element) {
-    console.log('Hiding element with ID:', id);
-    element.style.display = 'none';
-  } else {
-    console.log('Element not found for ID:', id);
-  }
+    return { date: dateStr, author, content, id };
+  });
+
+  return posts.filter((post) => post.author && post.content);
 }
 
 function catchErrors() {
