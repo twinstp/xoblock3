@@ -328,11 +328,13 @@ function getPostElements() {
   const postTables = Array.from(document.querySelectorAll("table[width='700']"));
   const posts = postTables.map((postTable) => {
     const id = postTable.getAttribute("id");
-    const dateElement = postTable.querySelector("b:contains('Date:')");
+    const bElements = postTable.querySelectorAll("b");
+    const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
     const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-    const authorElement = postTable.querySelector("b:contains('Author:')");
+    const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
     const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-    const endMarker = postTable.querySelector("font[size='1']:contains('(LINK TO THREAD TOP)')");
+    const endMarker = postTable.querySelector("font[size='1']");
+
     let content = null;
     if (endMarker) {
       const contentElements = [];
@@ -341,10 +343,12 @@ function getPostElements() {
         contentElements.push(currentElement.textContent.trim());
         currentElement = currentElement.nextElementSibling;
       }
-      content = contentElements.join(' ');
+      content = contentElements.join('');
     }
+
     return { date: dateStr, author, content, id };
   });
+
   return posts.filter((post) => post.author && post.content);
 }
 
