@@ -334,7 +334,6 @@ function extractText(input) {
   const regex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
   return input.replace(regex, '').trim().replace(/^\)/, '');
 }
-// Get post elements from the page.
 function getPostElements() {
   const messageTables = document.querySelectorAll("table[width='700']");
   const posts = Array.from(messageTables)
@@ -377,6 +376,24 @@ function getPostElements() {
     })
     .filter(Boolean);
   return posts;
+}
+
+async function filterSpamPosts() {
+  const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
+  const posts = getPostElements();
+  for (const post of posts) {
+    const { date: dateStr, author, content, id, postTable } = post;
+
+    // Filter logic
+    // ...
+
+    // Hiding spam post and removing spacing attribute
+    if (isSpam) {
+      postTable.style.visibility = 'hidden';
+      postTable.style.display = 'none';
+      postTable.removeAttribute("cellspacing");
+    }
+  }
 }
 // Catch errors and log to console
 function catchErrors() {
