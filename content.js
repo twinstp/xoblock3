@@ -503,7 +503,7 @@ class PostFilter {
           if (this.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
             isSpam = true;
           }
-          
+
           const simHash = await this.workerManager.computeSimHash(content);
           const cacheKeys = this.lruCache.getKeys();
           if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
