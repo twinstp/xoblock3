@@ -328,6 +328,9 @@ function getPostElements() {
   const postAnchors = Array.from(document.querySelectorAll("a[name]"));
   const posts = postAnchors.map((postAnchor) => {
     const postTable = postAnchor.nextElementSibling;
+    if (!postTable) {
+      return null;
+    }
     const id = postAnchor.getAttribute("name");
     const boldElements = postTable.querySelectorAll("b");
     const dateElement = Array.from(boldElements).find((b) => b.textContent.trim() === 'Date:');
@@ -346,7 +349,7 @@ function getPostElements() {
       content = contentElements.join('');
     }
     return { date: dateStr, author, content, id };
-  });
+  }).filter(Boolean);
   return posts.filter((post) => post.author && post.content);
 }
 
