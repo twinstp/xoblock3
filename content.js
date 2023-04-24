@@ -300,7 +300,11 @@ async function loadConfig() {
   return new Promise((resolve) => {
     chrome.storage.local.get('config', (storedData) => {
       const initialConfig = getInitialConfig();
-      const config = storedData?.config || initialConfig;
+      const config = storedData.config || initialConfig;
+      if (!config) {
+        console.error('Config object is not defined');
+        return;
+      }
       const substringTrie = new TrieNode();
       const bloomFilter = new BloomFilter(10000, 5);
       if (Array.isArray(config.FILTERED_SUBSTRINGS)) {
@@ -330,14 +334,13 @@ function extractText(input) {
   const regex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
   return input.replace(regex, '').trim().replace(/^\)/, '');
 }
-
-// Get post elements from the page
+// Get post elements from the page.
 function getPostElements() {
-  const postAnchors = Array.from(document.querySelectorAll("a[name]"));
+  const postAnchors = Array.from(document.querySelectorAll('a[name]'));
   const posts = postAnchors.map((postAnchor) => {
     const postTable = postAnchor.nextElementSibling;
     if (!postTable) {
-      return null;
+      return [];
     }
     const id = postAnchor.getAttribute("name");
     const boldElements = postTable.querySelectorAll("b");
@@ -356,7 +359,13 @@ function getPostElements() {
       }
       content = contentElements.join('');
     }
-    return { date: dateStr, author, content, id };
+    return {
+      date: dateStr,
+      author,
+      content,
+      id,
+      postTable // Include the postTable property
+    };
   }).filter(Boolean);
   return posts.filter((post) => post.author && post.content);
 }
