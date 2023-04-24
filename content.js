@@ -336,11 +336,11 @@ function extractText(input) {
 }
 // Get post elements from the page.
 function getPostElements() {
-  const postAnchors = Array.from(document.querySelectorAll('a[name]'));
+  const postAnchors = Array.from(document.querySelectorAll("a[name]"));
   const posts = postAnchors.map((postAnchor) => {
     const postTable = postAnchor.nextElementSibling;
     if (!postTable) {
-      return [];
+      return null;
     }
     const id = postAnchor.getAttribute("name");
     const boldElements = postTable.querySelectorAll("b");
@@ -359,17 +359,10 @@ function getPostElements() {
       }
       content = contentElements.join('');
     }
-    return {
-      date: dateStr,
-      author,
-      content,
-      id,
-      postTable // Include the postTable property
-    };
+    return { date: dateStr, author, content, id, postTable };
   }).filter(Boolean);
   return posts.filter((post) => post.author && post.content);
 }
-
 // Catch errors and log to console
 function catchErrors() {
   window.addEventListener('error', (error) => {
@@ -428,9 +421,7 @@ async function filterSpamPosts() {
     }
     if (isSpam) {
       console.log('Hiding spam post:', post);
-      // Hide the postTable element using the blanking method from the prior art script
-      postTable.style.visibility = 'hidden';
-      postTable.style.display = 'none';
+      hidePostTable(postTable);
     }
   }
 }
