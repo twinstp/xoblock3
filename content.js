@@ -188,6 +188,14 @@ class BloomFilter {
     return hash % this.size;
   }
 }
+class ListNode {
+  constructor(key, value) {
+    this.key = key;
+    this.value = value;
+    this.prev = null;
+    this.next = null;
+  }
+}
 
 // LRU Cache class
 class LRUCache {
