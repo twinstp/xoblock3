@@ -337,53 +337,45 @@ function extractText(input) {
 // Get post elements from the page.
 function getPostElements() {
   const messageTables = document.querySelectorAll("table[width='700']");
-  const posts = Array.from(messageTables).map((table) => {
-    // Skip tables without cellspacing attribute
-    if (!table.hasAttribute('cellspacing')) {
-      return null;
-    }
-    
-    const authorElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Author:');
-    const author = authorElement ? authorElement.nextSibling?.textContent?.trim() : null;
-    const dateElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Date:');
-    const dateStr = dateElement ? dateElement.nextSibling?.textContent?.trim() : null;
-    const bodyElement = table.querySelector('table font');
+  const posts = Array.from(messageTables)
+    .filter(table => !table.hasAttribute("cellspacing"))
+    .map(table => {
+      const authorElement = table.querySelector("b:contains('Author:')");
+      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+      const dateElement = table.querySelector("b:contains('Date:')");
+      const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
+      const bodyElement = table.querySelector("table font");
 
-    const bodyStrings = [];
-    if (bodyElement) {
-      var i = 0;
-      var authorDetected = false;
+      const bodyStrings = [];
+      let authorDetected = false;
       for (const child of bodyElement.childNodes) {
-        if (i < 2) {
-          i++;
+        const textContent = child.textContent.trim();
+        if (textContent.startsWith("Author:")) {
+          authorDetected = true;
           continue;
         }
-        if (child.textContent && !isAllWhitespace(child.textContent)) {
-          const textContent = child.textContent;
-          if (!authorDetected) {
-            if (textContent.startsWith('Author:')) {
-              authorDetected = true;
-              i = 0;
-            }
-            continue;
-          }
-          bodyStrings.push(extractText(child.textContent));
+        if (authorDetected && !isAllWhitespace(textContent)) {
+          bodyStrings.push(extractText(textContent));
         }
-        i++;
       }
-    }
-    const content = bodyStrings.join('');
-    const id = table.querySelector("a[name]")?.getAttribute("name");
+      const content = bodyStrings.join("");
+      const id = table.querySelector("a[name]")?.getAttribute("name");
 
-    return {
-      date: dateStr,
-      author,
-      content,
-      id,
-      postTable: table // Include the postTable property
-    };
-  }).filter(Boolean);
-  return posts.filter((post) => post.author && post.content);
+      // Validate the post
+      if (!author || !dateStr || !content) {
+        return null;
+      }
+
+      return {
+        date: dateStr,
+        author,
+        content,
+        id,
+        postTable: table // Include the postTable property
+      };
+    })
+    .filter(Boolean);
+  return posts;
 }
 // Catch errors and log to console
 function catchErrors() {
