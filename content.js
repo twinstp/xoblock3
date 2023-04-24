@@ -359,19 +359,32 @@ function catchErrors() {
   });
 }
 
+function hideElementById(id) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.style.visibility = 'hidden';
+    element.style.display = 'none';
+  }
+}
+
+function hidePostTable(postTable) {
+  postTable.style.visibility = 'hidden';
+  postTable.style.display = 'none';
+}
+
 async function filterSpamPosts() {
   console.log('filterSpamPosts called');
   const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
   const posts = getPostElements();
   console.log('Retrieved posts:', posts);
   for (const post of posts) {
-    const { date: dateStr, author, content, id } = post;
+    const { date: dateStr, author, content, id, postTable } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
       continue;
     }
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
       console.log('Hiding post with substring match:', post);
-      hideElementById(id);
+      hidePostTable(postTable);
       continue;
     }
     const simHash = simhash(content);
@@ -389,7 +402,7 @@ async function filterSpamPosts() {
     }
     if (isSpam) {
       console.log('Hiding spam post:', post);
-      hideElementById(id);
+      hidePostTable(postTable);
     }
   }
 }
