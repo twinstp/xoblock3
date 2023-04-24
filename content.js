@@ -303,7 +303,7 @@ async function loadConfig() {
       const config = storedData?.config || initialConfig;
       const substringTrie = new TrieNode();
       const bloomFilter = new BloomFilter(10000, 5);
-      if (      Array.isArray(config.FILTERED_SUBSTRINGS)) {
+      if (Array.isArray(config.FILTERED_SUBSTRINGS)) {
         config.FILTERED_SUBSTRINGS = config.FILTERED_SUBSTRINGS.flatMap((s) => s.trim().split('\n'));
         config.FILTERED_SUBSTRINGS.forEach((substring) => {
           substringTrie.insert(substring);
