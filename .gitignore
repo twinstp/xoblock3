@@ -13,3 +13,7 @@ yarn.lock
 package.json
 staging/output.html
 staging/pyproject.toml
+content.js
+staging/chromedriver_linux64.zip
+staging/google-chrome-stable_current_amd64.deb
+staging/LICENSE.chromedriver

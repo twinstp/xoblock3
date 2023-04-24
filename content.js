@@ -336,18 +336,27 @@ function extractText(input) {
 }
 // Get post elements from the page.
 function getPostElements() {
+  // Find all anchor elements with the 'name' attribute (response number)
   const postAnchors = Array.from(document.querySelectorAll("a[name]"));
+
+  // Iterate through each post anchor and extract relevant information
   const posts = postAnchors.map((postAnchor) => {
-    const postTable = postAnchor.nextElementSibling;
+    const id = postAnchor.getAttribute("name"); // Get the response number
+    const postTable = postAnchor.nextElementSibling; // Get the post table
     if (!postTable) {
       return null;
     }
-    const id = postAnchor.getAttribute("name");
+
+    // Find the date and author elements
     const boldElements = postTable.querySelectorAll("b");
     const dateElement = Array.from(boldElements).find((b) => b.textContent.trim() === 'Date:');
-    const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
     const authorElement = Array.from(boldElements).find((b) => b.textContent.trim() === 'Author:');
+
+    // Extract the date and author text
+    const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
     const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+
+    // Find the post content within the font element
     const endMarker = postTable.querySelector("font[size='1']");
     let content = null;
     if (endMarker) {
@@ -359,8 +368,18 @@ function getPostElements() {
       }
       content = contentElements.join('');
     }
-    return { date: dateStr, author, content, id, postTable };
+
+    // Return the extracted information in an object
+    return {
+      date: dateStr,
+      author,
+      content,
+      id,
+      postTable // Include the postTable property
+    };
   }).filter(Boolean);
+
+  // Filter out any invalid posts (missing author or content)
   return posts.filter((post) => post.author && post.content);
 }
 // Catch errors and log to console
