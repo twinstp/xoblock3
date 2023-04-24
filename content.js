@@ -324,7 +324,6 @@ async function loadConfig() {
     });
   });
 }
-
 // Check if the text contains only whitespace
 function isAllWhitespace(text) {
   return /^\s*$/.test(text);
@@ -335,138 +334,83 @@ function extractText(input) {
   const regex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
   return input.replace(regex, '').trim().replace(/^\)/, '');
 }
-function getPostElements() {
-  const messageTables = document.querySelectorAll("table[width='700']");
-  const posts = Array.from(messageTables)
-    .filter(table => !table.hasAttribute("cellspacing"))
-    .map(table => {
-      const boldElements = table.querySelectorAll("b");
-      const authorElement = Array.from(boldElements).find(b => b.textContent.trim() === 'Author:');
-      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-      const dateElement = Array.from(boldElements).find(b => b.textContent.trim() === 'Date:');
-      const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-      const bodyElement = table.querySelector("table font");
 
-      const bodyStrings = [];
-      let authorDetected = false;
-      for (const child of bodyElement.childNodes) {
-        const textContent = child.textContent.trim();
-        if (textContent.startsWith("Author:")) {
-          authorDetected = true;
-          continue;
-        }
-        if (authorDetected && !isAllWhitespace(textContent)) {
-          bodyStrings.push(extractText(textContent));
-        }
-      }
-      const content = bodyStrings.join("");
-      const id = table.querySelector("a[name]")?.getAttribute("name");
-
-      // Validate the post
-      if (!author || !dateStr || !content) {
-        return null;
-      }
-
-      return {
-        date: dateStr,
-        author,
-        content,
-        id,
-        postTable: table // Include the postTable property
-      };
-    })
-    .filter(Boolean);
-  return posts;
-}
-
-async function filterSpamPosts() {
-  const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
-  const posts = getPostElements();
-  for (const post of posts) {
-    const { date: dateStr, author, content, id, postTable } = post;
-
-    // Filter logic
-    // ...
-
-    // Hiding spam post and removing spacing attribute
-    if (isSpam) {
-      postTable.style.visibility = 'hidden';
-      postTable.style.display = 'none';
-      postTable.removeAttribute("cellspacing");
+// Utility function to extract the hierarchical structure of the forum posts
+function extractResponses(parent, parentResponse = null) {
+  const responseEntries = [];
+  parent.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    const responseId = anchor.getAttribute('href').slice(1);
+    const content = anchor.textContent.trim();
+    if (responseId === 'top') return;
+    const responseEntry = { responseNumber: responseId, content, parentResponse };
+    responseEntries.push(responseEntry);
+    const nextTable = anchor.nextElementSibling;
+    if (nextTable && nextTable.tagName === 'TABLE') {
+      responseEntries.push(...extractResponses(nextTable, responseId));
     }
-  }
-}
-// Catch errors and log to console
-function catchErrors() {
-  window.addEventListener('error', (error) => {
-    console.error('Error in extension:', error.message);
   });
+  return responseEntries;
 }
 
-// Hide element by its ID
-function hideElementById(id) {
-  const element = document.getElementById(id);
-  if (element) {
-    element.style.visibility = 'hidden';
-    element.style.display = 'none';
-  }
+// Main function to extract hierarchical structure
+function extractHierarchicalStructure() {
+  const pageContent = document.documentElement.innerHTML;
+  const parser = new DOMParser();
+  const parsedDoc = parser.parseFromString(pageContent, 'text/html');
+  const responseEntries = extractResponses(parsedDoc.body);
+  return responseEntries;
 }
 
-// Hide post table
-function hidePostTable(postTable) {
-  if (postTable) {
-    postTable.style.visibility = 'hidden';
-    postTable.style.display = 'none';
-  }
+// Utility function to create a spoiler tag
+function createSpoiler(content) {
+  const spoiler = document.createElement('div');
+  spoiler.innerHTML = '<span class="spoiler-button">[Click to reveal]</span><span class="spoiler-content" style="display:none;">' + content + '</span>';
+  spoiler.querySelector('.spoiler-button').addEventListener('click', () => {
+    spoiler.querySelector('.spoiler-content').style.display = 'inline';
+    spoiler.querySelector('.spoiler-button').style.display = 'none';
+  });
+  return spoiler;
 }
 
-// Main function to filter spam posts
+// Revised filterSpamPosts function
 async function filterSpamPosts() {
-  console.log('filterSpamPosts called');
   const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
   const posts = getPostElements();
-  console.log('Retrieved posts:', posts);
+  const hierarchicalStructure = extractHierarchicalStructure();
+
+  // Add user options to hide posts by author (assuming userHiddenAuthors is an array of authors to hide)
+  const userHiddenAuthors = config.USER_HIDDEN_AUTHORS || [];
 
   for (const post of posts) {
     const { date: dateStr, author, content, id, postTable } = post;
-    if (content.length < config.LONG_POST_THRESHOLD) {
-      continue;
-    }
-    if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
-      console.log('Hiding post with substring match:', post);
-      hideElement(postTable); // Hide the postTable element
-      continue;
-    }
+    let isSpam = false;
 
-    const simHash = simhash(content);
-    console.log('SimHash of post:', simHash);
-    let isSpam = lruCache.getKeys().some((cachedSimHash) => {
-      return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
-    });
-
-    if (!isSpam && xorFilter.mayContain(content)) {
-      console.log('Post detected as spam by xorFilter:', post);
+    // Check if the author is in the user's hidden authors list
+    if (userHiddenAuthors.includes(author)) {
       isSpam = true;
     }
-    if (!isSpam && bloomFilter.test(simHash)) {
-      console.log('Post detected as spam by bloomFilter:', post);
-      isSpam = true;
+
+    // Check if the post is a known spam substring or if it's detected as spam by xorFilter or bloomFilter
+    if (content.length >= config.LONG_POST_THRESHOLD) {
+      if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
+        isSpam = true;
+      }
+      const simHash = simhash(content);
+      if (!isSpam && xorFilter.mayContain(content)) {
+        isSpam = true;
+      }
+      if (!isSpam && bloomFilter.test(simHash)) {
+        isSpam = true;
+      }
     }
+
+    // If the post is spam, create a spoiler tag and replace the content with the spoiler
     if (isSpam) {
-      console.log('Hiding spam post:', post);
-      hideElement(postTable); // Hide the postTable element
+      const spoiler = createSpoiler(content);
+      postTable.replaceChild(spoiler, postTable.querySelector("table font"));
     }
   }
 }
 
-// Utility function to hide an HTML element
-function hideElement(element) {
-  if (element) {
-    element.style.visibility = 'hidden';
-    element.style.display = 'none';
-  }
-}
-
-// Call the filterSpamPosts function to hide the posts
 catchErrors();
 filterSpamPosts();

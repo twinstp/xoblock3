@@ -24,3 +24,7 @@ staging/posts_data.json
 staging/merge.py
 staging/response_data.json
 staging/script2.py
+staging/hierarchical_posts_data.json
+staging/hierarchical_posts_structure.html
+staging/posts_data_with_parent.json
+staging/XoScrapeTree.py

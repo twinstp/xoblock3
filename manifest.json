@@ -10,41 +10,24 @@
   },
   "options_page": "settings/settings.html",
   "action": {
-      "default_title": "FilterXOXO_TwinstpVer",
-      "default_popup": "popup/popup.html"
-          },
+    "default_title": "FilterXOXO_TwinstpVer",
+    "default_popup": "popup/popup.html"
+  },
   "permissions": [
-      "tabs",
-      "contextMenus",
-      "scripting",
-      "storage",
-      "unlimitedStorage",
-      "webNavigation"
+    "tabs", "contextMenus", "scripting", "storage", "unlimitedStorage", "webNavigation"
   ],
   "host_permissions": [
-    "https://www.xoxohth.com/*",
-    "https://xoxohth.com/*",
-    "http://xoxohth.com/*",
-    "http://www.xoxohth.com/*",
-    "https://*.xoxohth.com/*",
-    "http://*.xoxohth.com/*",
-    "https://www.autoadmit.com/*",
-    "https://autoadmit.com/*",
-    "http://autoadmit.com/*",
+    "https://www.xoxohth.com/*", "https://xoxohth.com/*", "http://xoxohth.com/*",
+    "http://www.xoxohth.com/*", "https://*.xoxohth.com/*", "http://*.xoxohth.com/*",
+    "https://www.autoadmit.com/*", "https://autoadmit.com/*", "http://autoadmit.com/*",
     "http://www.autoadmit.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://www.xoxohth.com/*",
-        "https://xoxohth.com/*",
-        "http://xoxohth.com/*",
-        "http://www.xoxohth.com/*",
-        "http://*.xoxohth.com/*",
-        "https://*.xoxohth.com/*",
-        "https://www.autoadmit.com/*",
-        "https://autoadmit.com/*",
-        "http://autoadmit.com/*",
+        "https://www.xoxohth.com/*", "https://xoxohth.com/*", "http://xoxohth.com/*",
+        "http://www.xoxohth.com/*", "http://*.xoxohth.com/*", "https://*.xoxohth.com/*",
+        "https://www.autoadmit.com/*", "https://autoadmit.com/*", "http://autoadmit.com/*",
         "http://www.autoadmit.com/*"
       ],
       "js": ["content.js"]
