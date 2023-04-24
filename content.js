@@ -411,6 +411,11 @@ async function filterSpamPosts() {
     }
   }
 }
+function catchErrors() {
+  window.addEventListener('error', (error) => {
+    console.error('Error in extension:', error.message);
+  });
+}
 
 catchErrors();
 filterSpamPosts();
