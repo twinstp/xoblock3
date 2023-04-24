@@ -336,36 +336,51 @@ function extractText(input) {
 }
 // Get post elements from the page.
 function getPostElements() {
-  const postAnchors = Array.from(document.querySelectorAll("a[name]"));
-  const posts = postAnchors.map((postAnchor) => {
-    // Get the closest parent 'table' element of the postAnchor
-    const postTable = postAnchor.closest("table");
-    if (!postTable) {
+  const messageTables = document.querySelectorAll("table[width='700']");
+  const posts = Array.from(messageTables).map((table) => {
+    // Skip tables without cellspacing attribute
+    if (!table.hasAttribute('cellspacing')) {
       return null;
     }
-    const id = postAnchor.getAttribute("name");
-    const boldElements = postTable.querySelectorAll("b");
-    const dateElement = Array.from(boldElements).find((b) => b.textContent.trim() === 'Date:');
-    const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-    const authorElement = Array.from(boldElements).find((b) => b.textContent.trim() === 'Author:');
-    const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-    const endMarker = postTable.querySelector("font[size='1']");
-    let content = null;
-    if (endMarker) {
-      const contentElements = [];
-      let currentElement = postTable.querySelector("font[face='Times New Roman']");
-      while (currentElement && currentElement !== endMarker) {
-        contentElements.push(currentElement.textContent.trim());
-        currentElement = currentElement.nextElementSibling;
+    
+    const authorElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Author:');
+    const author = authorElement ? authorElement.nextSibling?.textContent?.trim() : null;
+    const dateElement = Array.from(table.querySelectorAll('b')).find((b) => b.textContent.trim() === 'Date:');
+    const dateStr = dateElement ? dateElement.nextSibling?.textContent?.trim() : null;
+    const bodyElement = table.querySelector('table font');
+
+    const bodyStrings = [];
+    if (bodyElement) {
+      var i = 0;
+      var authorDetected = false;
+      for (const child of bodyElement.childNodes) {
+        if (i < 2) {
+          i++;
+          continue;
+        }
+        if (child.textContent && !isAllWhitespace(child.textContent)) {
+          const textContent = child.textContent;
+          if (!authorDetected) {
+            if (textContent.startsWith('Author:')) {
+              authorDetected = true;
+              i = 0;
+            }
+            continue;
+          }
+          bodyStrings.push(extractText(child.textContent));
+        }
+        i++;
       }
-      content = contentElements.join('');
     }
+    const content = bodyStrings.join('');
+    const id = table.querySelector("a[name]")?.getAttribute("name");
+
     return {
       date: dateStr,
       author,
       content,
       id,
-      postTable // Include the postTable property
+      postTable: table // Include the postTable property
     };
   }).filter(Boolean);
   return posts.filter((post) => post.author && post.content);
