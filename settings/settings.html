@@ -1,31 +1,33 @@
-<!doctype html>
-<html lang=en>
-  <head>
-    <meta charset=utf-8>
-    <meta http-equiv=x-ua-compatible content="IE=edge">
-    <link rel=stylesheet href=settings.css>
-    <title>Spam Filter Extension Options</title>
-  </head>
-  <body>
-    <h1>Configuration</h1>
-    <form>
-      <label for=max-cache-size>Max Cache Size:</label>
-      <input type=number id=max-cache-size name=max-cache-size><br><br>
-
-      <label for=max-hamming-distance>Max Hamming Distance:</label>
-      <input type=number id=max-hamming-distance name=max-hamming-distance><br><br>
-
-      <label for=long-post-threshold>Long Post Threshold:</label>
-      <input type=number id=long-post-threshold name=long-post-threshold><br><br>
-
-      <label for=filtered-substrings>Filtered Substrings (separated by line breaks):</label><br>
-      <textarea id=filtered-substrings name=filtered-substrings rows=4 cols=50></textarea><br><br>
-
-      <label for=hidden-authors>Hide Authors (separated by line breaks):</label><br>
-      <textarea id=hidden-authors name=hidden-authors rows=4 cols=50></textarea><br><br>
-
-      <button id=save-config type=button>Save Configuration</button>
-    </form>
-    <script src=settings.js></script>
-  </body>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Extension Settings</title>
+</head>
+<body>
+  <h1>Extension Settings</h1>
+  <div>
+    <label for="max-cache-size">Max Cache Size:</label>
+    <input type="number" id="max-cache-size" name="max-cache-size">
+  </div>
+  <div>
+    <label for="max-hamming-distance">Max Hamming Distance:</label>
+    <input type="number" id="max-hamming-distance" name="max-hamming-distance">
+  </div>
+  <div>
+    <label for="long-post-threshold">Long Post Threshold:</label>
+    <input type="number" id="long-post-threshold" name="long-post-threshold">
+  </div>
+  <div>
+    <label for="filtered-substrings">Filtered Substrings:</label>
+    <textarea id="filtered-substrings" name="filtered-substrings" rows="5"></textarea>
+  </div>
+  <div>
+    <label for="hidden-authors">Hidden Authors:</label>
+    <textarea id="hidden-authors" name="hidden-authors" rows="5"></textarea>
+  </div>
+  <div>
+    <button id="save-config">Save Configuration</button>
+  </div>
+  <script src="settings.js"></script>
+</body>
 </html>

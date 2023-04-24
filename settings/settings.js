@@ -1,4 +1,3 @@
-// Get initial configuration
 function getInitialConfig() {
   return {
     MAX_CACHE_SIZE: 1000,
@@ -11,11 +10,10 @@ function getInitialConfig() {
       'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
       'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.'
     ],
-    USER_HIDDEN_AUTHORS: [] // List of authors to hide
+    USER_HIDDEN_AUTHORS: []
   };
 }
 
-// Load the configuration from storage
 async function loadConfig() {
   console.log('Loading config...');
   return new Promise((resolve) => {
@@ -27,7 +25,6 @@ async function loadConfig() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Load the current configuration and populate the form fields
   loadConfig().then((config) => {
     document.getElementById('max-cache-size').value = config.MAX_CACHE_SIZE;
     document.getElementById('max-hamming-distance').value = config.MAX_HAMMING_DISTANCE;
@@ -38,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Failed to load configuration:', error);
   });
 
-  // Save the updated configuration when the user clicks the "Save" button
   document.getElementById('save-config').addEventListener('click', () => {
     const maxCacheSize = parseInt(document.getElementById('max-cache-size').value, 10);
     const maxHammingDistance = parseInt(document.getElementById('max-hamming-distance').value, 10);
