@@ -17,3 +17,10 @@ content.js
 staging/chromedriver_linux64.zip
 staging/google-chrome-stable_current_amd64.deb
 staging/LICENSE.chromedriver
+staging/scrape.py
+.vscode/c_cpp_properties.json
+staging/forum_page.html
+staging/posts_data.json
+staging/merge.py
+staging/response_data.json
+staging/script2.py
