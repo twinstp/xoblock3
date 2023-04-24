@@ -325,30 +325,28 @@ function extractText(input) {
 }
 
 function getPostElements() {
-  const postTables = Array.from(document.querySelectorAll("table[width='700']"));
-  const posts = postTables.map((postTable) => {
-    const id = postTable.getAttribute("id");
-    const bElements = postTable.querySelectorAll("b");
-    const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
+  const postAnchors = Array.from(document.querySelectorAll("a[name]"));
+  const posts = postAnchors.map((postAnchor) => {
+    const postTable = postAnchor.nextElementSibling;
+    const id = postAnchor.getAttribute("name");
+    const boldElements = postTable.querySelectorAll("b");
+    const dateElement = Array.from(boldElements).find((b) => b.textContent.trim() === 'Date:');
     const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-    const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
+    const authorElement = Array.from(boldElements).find((b) => b.textContent.trim() === 'Author:');
     const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
     const endMarker = postTable.querySelector("font[size='1']");
-
     let content = null;
     if (endMarker) {
       const contentElements = [];
-      let currentElement = postTable;
+      let currentElement = postTable.querySelector("font[face='Times New Roman']");
       while (currentElement && currentElement !== endMarker) {
         contentElements.push(currentElement.textContent.trim());
         currentElement = currentElement.nextElementSibling;
       }
       content = contentElements.join('');
     }
-
     return { date: dateStr, author, content, id };
   });
-
   return posts.filter((post) => post.author && post.content);
 }
 
