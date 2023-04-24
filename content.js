@@ -340,9 +340,10 @@ function getPostElements() {
   const posts = Array.from(messageTables)
     .filter(table => !table.hasAttribute("cellspacing"))
     .map(table => {
-      const authorElement = table.querySelector("b:contains('Author:')");
+      const boldElements = table.querySelectorAll("b");
+      const authorElement = Array.from(boldElements).find(b => b.textContent.trim() === 'Author:');
       const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-      const dateElement = table.querySelector("b:contains('Date:')");
+      const dateElement = Array.from(boldElements).find(b => b.textContent.trim() === 'Date:');
       const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
       const bodyElement = table.querySelector("table font");
 
