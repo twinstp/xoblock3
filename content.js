@@ -412,7 +412,7 @@ async function filterSpamPosts() {
   const { config, substringTrie, xorFilter, bloomFilter, lruCache } = await loadConfig();
   const posts = getPostElements();
   console.log('Retrieved posts:', posts);
-  
+
   for (const post of posts) {
     const { date: dateStr, author, content, id, postTable } = post;
     if (content.length < config.LONG_POST_THRESHOLD) {
@@ -420,16 +420,16 @@ async function filterSpamPosts() {
     }
     if (config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
       console.log('Hiding post with substring match:', post);
-      // Hide the postTable element using the blanking method from the prior art script
-      postTable.style.visibility = 'hidden';
-      postTable.style.display = 'none';
+      hideElement(postTable); // Hide the postTable element
       continue;
     }
+
     const simHash = simhash(content);
     console.log('SimHash of post:', simHash);
     let isSpam = lruCache.getKeys().some((cachedSimHash) => {
       return hammingDistance(simHash, cachedSimHash) <= config.MAX_HAMMING_DISTANCE;
     });
+
     if (!isSpam && xorFilter.mayContain(content)) {
       console.log('Post detected as spam by xorFilter:', post);
       isSpam = true;
@@ -440,8 +440,16 @@ async function filterSpamPosts() {
     }
     if (isSpam) {
       console.log('Hiding spam post:', post);
-      hidePostTable(postTable);
+      hideElement(postTable); // Hide the postTable element
     }
+  }
+}
+
+// Utility function to hide an HTML element
+function hideElement(element) {
+  if (element) {
+    element.style.visibility = 'hidden';
+    element.style.display = 'none';
   }
 }
 
