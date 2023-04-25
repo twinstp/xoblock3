@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-var ban-unused-ignore
 'use strict';
 // ## SHA1 implementation (minified) - NEED TO ADD HERE NOT CALL CRYPTO OR SUBTLE JS B/C OF CPS AND MANIFEST V3
 // deno-lint-ignore no-var
@@ -30,7 +31,8 @@ class ConfigurationManager {
   }
 
   async loadConfig() {
-    console.log('Loading config...');
+    this.config = await this.configManager.loadConfig();
+      console.log('Loading config...');
     return new Promise((resolve) => {
       chrome.storage.local.get('config', (storedData) => {
         this.config = storedData?.config || this.getInitialConfig();
@@ -495,42 +497,37 @@ class PostFilter {
 
   async filterSpamPosts() {
     try {
-      const posts = this.getPostElements();
-      const hierarchicalStructure = this.extractHierarchicalStructure();
-      const userHiddenAuthors = this.config.USER_HIDDEN_AUTHORS || [];
-      const maxHammingDistance = this.config.MAX_HAMMING_DISTANCE || 5;
-      
-      for (const post of posts) {
-        const { date: dateStr, author, content, id, postTable } = post;
-        let isSpam = false;
-
-        if (userHiddenAuthors.includes(author)) {
-          isSpam = true;
+        const posts = this.getPostElements();
+        const hierarchicalStructure = this.extractHierarchicalStructure();
+        // Check if config is defined, and use default value if USER_HIDDEN_AUTHORS is undefined
+        const userHiddenAuthors = this.config?.USER_HIDDEN_AUTHORS || [];
+        const maxHammingDistance = this.config?.MAX_HAMMING_DISTANCE || 5;
+        for (const post of posts) {
+            const { date: dateStr, author, content, id, postTable } = post;
+            let isSpam = false;
+            if (userHiddenAuthors.includes(author)) {
+                isSpam = true;
+            }
+            if (content.length >= this.config.LONG_POST_THRESHOLD) {
+                if (this.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
+                    isSpam = true;
+                }
+                const simHash = await this.workerManager.computeSimHash(content);
+                const cacheKeys = this.lruCache.getKeys();
+                if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
+                    isSpam = true;
+                }
+                if (!this.lruCache.has(simHash)) {
+                    this.lruCache.put(simHash, true);
+                }
+            }
+            if (isSpam) {
+                const spoiler = this.createSpoiler(content);
+                postTable.replaceChild(spoiler, postTable.querySelector("table font"));
+            }
         }
-
-        if (content.length >= this.config.LONG_POST_THRESHOLD) {
-          if (this.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
-            isSpam = true;
-          }
-
-          const simHash = await this.workerManager.computeSimHash(content);
-          const cacheKeys = this.lruCache.getKeys();
-          if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
-            isSpam = true;
-          }
-
-          if (!this.lruCache.has(simHash)) {
-            this.lruCache.put(simHash, true);
-          }
-        }
-
-        if (isSpam) {
-          const spoiler = this.createSpoiler(content);
-          postTable.replaceChild(spoiler, postTable.querySelector("table font"));
-        }
-      }
     } catch (error) {
-      console.error('Error in filterSpamPosts:', error.message);
+        console.error('Error in filterSpamPosts:', error.message);
     }
   }
 }
