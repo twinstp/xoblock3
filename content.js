@@ -247,12 +247,18 @@ class WorkerManager {
   initializeWorker() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').then(() => {
-        this.worker = navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          this.worker = navigator.serviceWorker.controller;
+        });
       });
     }
   }
   computeSHA1(message) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      if (!this.worker) {
+        reject(new Error('Service worker is not defined'));
+        return;
+      }
       this.worker.postMessage({ action: 'computeDigest', token: message });
       const digestListener = (event) => {
         if (event.data.action === 'computeDigest') {
@@ -354,10 +360,16 @@ class FilterManager {
   }
   async initializeFilters() {
     if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
-      const filteredHashes = await Promise.all(this.config.FILTERED_SUBSTRINGS.map(async (substring) => {
-        return await workerManager.computeSHA1(substring);
-      }));
-      this.xorFilter = new XORFilter(filteredHashes);
+      const filteredHashes = await Promise.allSettled(
+        this.config.FILTERED_SUBSTRINGS.map(async (substring) => {
+          return await workerManager.computeSHA1(substring);
+        })
+      );
+      // Use only the fulfilled promises to create the XOR filter
+      const fulfilledHashes = filteredHashes
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => result.value);
+      this.xorFilter = new XORFilter(fulfilledHashes);
       this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
         this.substringTrie.insert(substring);
         this.bloomFilter.add(substring);
@@ -470,13 +482,15 @@ class ContentFilter {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { content, postTable } = post;
-      if (this.filterManager.bloomFilter.test(content) && this.filterManager.substringTrie.search(content)) {
+      if (this.filterManager && this.filterManager.bloomFilter &&
+          this.filterManager.bloomFilter.test(content) &&
+          this.filterManager.substringTrie.search(content)) {
         const spoiler = this.createSpoiler(content);
         postTable.replaceChild(spoiler, postTable.querySelector("table font"));
       }
     }
   }
-  filterSpamPostsBySimHash() {
+    filterSpamPostsBySimHash() {
     const posts = this.postParser.getPostElements();
     const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
     Promise.all(longPosts.map(async (post) => {
