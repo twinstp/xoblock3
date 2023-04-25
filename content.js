@@ -256,6 +256,10 @@ class WorkerManager {
 
   computeSHA1(message) {
     return new Promise((resolve, reject) => {
+      if (!navigator.serviceWorker.controller) {
+        reject(new Error('Service worker is not active'));
+        return;
+      }
       const messageChannel = new MessageChannel();
       messageChannel.port1.onmessage = (event) => {
         if (event.data.action === 'computeDigest') {
@@ -271,6 +275,10 @@ class WorkerManager {
 
   computeSimHash(content) {
     return new Promise((resolve, reject) => {
+      if (!navigator.serviceWorker.controller) {
+        reject(new Error('Service worker is not active'));
+        return;
+      }
       const messageChannel = new MessageChannel();
       messageChannel.port1.onmessage = (event) => {
         if (event.data.action === 'computeSimHash') {
