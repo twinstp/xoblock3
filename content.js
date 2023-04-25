@@ -540,22 +540,19 @@ async filterSpamPosts() {
     }
   }
 
-const contentFilter = new ContentFilter();
+  const contentFilter = new ContentFilter();
 
-function catchErrors() {
-  self.onerror = function (message, source, lineno, colno, error) {
+  function handleErrors(event) {
     console.error(
-      `An unhandled error occurred: ${message}\nSource: ${source}\nLine: ${lineno}\nColumn: ${colno}\nError object:`,
-      error
+      `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
+      event.error
     );
-    return true;
-  };
-}
-
-catchErrors();
-
-try {
-  contentFilter.filterSpamPosts();
-} catch (error) {
-  console.error('Error in filterSpamPosts:', error.message);
-}
+  }
+  
+  window.addEventListener('error', handleErrors);
+  
+  try {
+    contentFilter.filterSpamPosts();
+  } catch (error) {
+    console.error('Error in filterSpamPosts:', error.message);
+  }  
