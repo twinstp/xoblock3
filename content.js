@@ -264,18 +264,6 @@ class SimHashUtil {
     }
     return hash;
   }
-
-  static hammingDistance(hash1, hash2) {
-    if (hash1.length !== hash2.length) {
-      throw new Error("The lengths of hash1 and hash2 must be equal.");
-    }
-    let distance = 0;
-    for (let i = 0; i < hash1.length; i++) {
-      distance += countSetBits(hash1[i] ^ hash2[i]);
-    }
-    return distance;
-  }
-
   // Helper function to count the number of set bits in a given number
   static countSetBits(num) {
     let count = 0;
@@ -285,6 +273,18 @@ class SimHashUtil {
     }
     return count;
   }
+
+  static hammingDistance(hash1, hash2) {
+    if (hash1.length !== hash2.length) {
+      throw new Error("The lengths of hash1 and hash2 must be equal.");
+    }
+    let distance = 0;
+    for (let i = 0; i < hash1.length; i++) {
+      distance += this.countSetBits(hash1[i] ^ hash2[i]);
+    }
+    return distance;
+  }
+
 }
 
 // Usage example
