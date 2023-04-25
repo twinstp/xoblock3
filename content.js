@@ -243,7 +243,7 @@ class TrieNode {
 class SimHashUtil {
   static createSHA1Hash(message) {
     // UTF-8 encoding function
-    function utf8Encode(str) {
+    function utf8_encode(str) {
       return unescape(encodeURIComponent(str));
     }
     // SHA1 implementation
