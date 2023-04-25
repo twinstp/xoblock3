@@ -462,6 +462,8 @@ class ContentFilter {
     this.postParser = new PostParser();
     this.configManager.loadConfig().then((config) => {
       this.filterManager = new FilterManager(config);
+      this.filterPostsBySubstrings();
+      this.filterSpamPostsBySimHash();
     });
   }
   createSpoiler(content) {
@@ -490,7 +492,7 @@ class ContentFilter {
       }
     }
   }
-    filterSpamPostsBySimHash() {
+  filterSpamPostsBySimHash() {
     const posts = this.postParser.getPostElements();
     const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
     Promise.all(longPosts.map(async (post) => {
@@ -509,7 +511,4 @@ class ContentFilter {
   }
 }
 
-const config = new ConfigurationManager().getInitialConfig();
-const contentFilter = new ContentFilter();
-contentFilter.filterPostsBySubstrings();
-contentFilter.filterSpamPostsBySimHash();
+const contentFilter = new ContentFilter(); // This will now initialize filters after config is loaded
