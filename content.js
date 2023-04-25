@@ -243,11 +243,16 @@ class TrieNode {
 class SimHashUtil {
   static createSHA1Hash(message) {
     // SHA1 implementation
-    function sha1(f){var $,r,e,o,t,_,x,a,h,c=function(f,$){return f<<$|f>>>32-$},C=function(f){var $,r,e="";for($=7;$>=0;$--)e+=(r=f>>>4*$&15).toString(16);return e},A=Array(80),n=1732584193,s=4023233417,u=2562383102,d=271733878,i=3285377520,D=(f=this.utf8_encode(f)).length,p=[];for(r=0;r<D-3;r+=4)e=f.charCodeAt(r)<<24|f.charCodeAt(r+1)<<16|f.charCodeAt(r+2)<<8|f.charCodeAt(r+3),p.push(e);switch(D%4){case 0:r=2147483648;break;case 1:r=f.charCodeAt(D-1)<<24|8388608;break;case 2:r=f.charCodeAt(D-2)<<24|f.charCodeAt(D-1)<<16|32768;break;case 3:r=f.charCodeAt(D-3)<<24|f.charCodeAt(D-2)<<16|f.charCodeAt(D-1)<<8|128}for(p.push(r);p.length%16!=14;)p.push(0);for(p.push(D>>>29),p.push(D<<3&4294967295),$=0;$<p.length;$+=16){for(r=0;r<16;r++)A[r]=p[$+r];for(r=16;r<=79;r++)A[r]=c(A[r-3]^A[r-8]^A[r-14]^A[r-16],1);for(r=0,o=n,t=s,_=u,x=d,a=i;r<=19;r++)h=c(o,5)+(t&_|~t&x)+a+A[r]+1518500249&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=20;r<=39;r++)h=c(o,5)+(t^_^x)+a+A[r]+1859775393&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=40;r<=59;r++)h=c(o,5)+(t&_|t&x|_&x)+a+A[r]+2400959708&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=60;r<=79;r++)h=c(o,5)+(t^_^x)+a+A[r]+3395469782&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;n=n+o&4294967295,s=s+t&4294967295,u=u+_&4294967295,d=d+x&4294967295,i=i+a&4294967295}return(h=C(n)+C(s)+C(u)+C(d)+C(i)).toLowerCase()}
+    function sha1(f) {
+    var $,r,e,o,t,_,x,a,h,c=function(f,$){return f<<$|f>>>32-$},C=function(f){var $,r,e="";for($=7;$>=0;$--)e+=(r=f>>>4*$&15).toString(16);return e},A=Array(80),n=1732584193,s=4023233417,u=2562383102,d=271733878,i=3285377520,D=(f=this.utf8_encode(f)).length,p=[];for(r=0;r<D-3;r+=4)e=f.charCodeAt(r)<<24|f.charCodeAt(r+1)<<16|f.charCodeAt(r+2)<<8|f.charCodeAt(r+3),p.push(e);switch(D%4){case 0:r=2147483648;break;case 1:r=f.charCodeAt(D-1)<<24|8388608;break;case 2:r=f.charCodeAt(D-2)<<24|f.charCodeAt(D-1)<<16|32768;break;case 3:r=f.charCodeAt(D-3)<<24|f.charCodeAt(D-2)<<16|f.charCodeAt(D-1)<<8|128}for(p.push(r);p.length%16!=14;)p.push(0);for(p.push(D>>>29),p.push(D<<3&4294967295),$=0;$<p.length;$+=16){for(r=0;r<16;r++)A[r]=p[$+r];for(r=16;r<=79;r++)A[r]=c(A[r-3]^A[r-8]^A[r-14]^A[r-16],1);for(r=0,o=n,t=s,_=u,x=d,a=i;r<=19;r++)h=c(o,5)+(t&_|~t&x)+a+A[r]+1518500249&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=20;r<=39;r++)h=c(o,5)+(t^_^x)+a+A[r]+1859775393&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=40;r<=59;r++)h=c(o,5)+(t&_|t&x|_&x)+a+A[r]+2400959708&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=60;r<=79;r++)h=c(o,5)+(t^_^x)+a+A[r]+3395469782&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;n=n+o&4294967295,s=s+t&4294967295,u=u+_&4294967295,d=d+x&4294967295,i=i+a&4294967295}return(h=C(n)+C(s)+C(u)+C(d)+C(i)).toLowerCase()
+}
+  // Invoke the sha1 function and return the result
+    return sha1(message);
   }
-    static async simhash(message, fingerprintBits = 32) {
-    const sha1 = this.createSHA1Hash(message);
-    const digest = sha1.digest();
+
+  static async simhash(message, fingerprintBits = 32) {
+    const hexDigest = this.createSHA1Hash(message);
+    const digest = hexDigest.match(/.{1,2}/g).map(byte => parseInt(byte, 16));
     const hash = [];
     const mask = (1 << fingerprintBits) - 1;
     for (let i = 0; i < digest.length; i++) {
