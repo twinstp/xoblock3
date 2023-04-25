@@ -414,38 +414,46 @@ class PostFilter {
   }
 
   getPostElements() {
-    const messageTables     = document.querySelectorAll("table[width='700']");
+    const messageTables = document.querySelectorAll("table[width='700']");
     const posts = Array.from(messageTables)
-      .filter((table) => !table.hasAttribute("cellspacing"))
-      .map((table) => {
-        const bElements = table.querySelectorAll("b");
-        const authorElement = Array.from(bElements).find(b => b.textContent.trim() === 'Author:');
-        const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-        const dateElement = table.querySelector("b:contains('Date:')");
-        const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-        const bodyElement = table.querySelector("table font");
-        const bodyStrings = [];
-        let authorDetected = false;
-        for (const child of bodyElement.childNodes) {
-          const textContent = child.textContent.trim();
-          if (textContent.startsWith("Author:")) {
-            authorDetected = true;
-            continue;
-          }
-          if (authorDetected && !this.isAllWhitespace(textContent)) {
-            bodyStrings.push(this.extractText(textContent));
-          }
-        }
-        const content = bodyStrings.join("");
-        const id = table.querySelector("a[name]")?.getAttribute("name");
-        if (!author || !dateStr || !content) {
-          return null;
-        }
-        return { date: dateStr, author, content, id, postTable: table };
-      })
-      .filter(Boolean);
+        .filter((table) => !table.hasAttribute("cellspacing"))
+        .map((table) => {
+            // Locate the <b> elements in the table
+            const bElements = table.querySelectorAll("b");
+            // Find the "Author:" element and extract the author
+            const authorElement = Array.from(bElements).find(
+                (b) => b.textContent.trim() === 'Author:'
+            );
+            const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+            // Find the "Date:" element and extract the date
+            const dateElement = Array.from(bElements).find(
+                (b) => b.textContent.trim() === 'Date:'
+            );
+            const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
+            // Extract the post content
+            const bodyElement = table.querySelector("table font");
+            const bodyStrings = [];
+            let authorDetected = false;
+            for (const child of bodyElement.childNodes) {
+                const textContent = child.textContent.trim();
+                if (textContent.startsWith("Author:")) {
+                    authorDetected = true;
+                    continue;
+                }
+                if (authorDetected && !this.isAllWhitespace(textContent)) {
+                    bodyStrings.push(this.extractText(textContent));
+                }
+            }
+            const content = bodyStrings.join("");
+            const id = table.querySelector("a[name]")?.getAttribute("name");
+            if (!author || !dateStr || !content) {
+                return null;
+            }
+            return { date: dateStr, author, content, id, postTable: table };
+        })
+        .filter(Boolean);
     return posts;
-  }
+}
 
   createSpoiler(content) {
     const spoiler = document.createElement('div');
