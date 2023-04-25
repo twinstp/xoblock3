@@ -515,9 +515,9 @@ async filterSpamPosts() {
       const { date: dateStr, author, content, id, postTable } = post;
       let isSpam = false;
       if (userHiddenAuthors.includes(author)) {
-          isSpam = true;
-        }
-        if (content.length >= this.filterManager.config.LONG_POST_THRESHOLD) {
+        isSpam = true;
+      }
+      if (content.length >= this.filterManager.config.LONG_POST_THRESHOLD) {
           if (this.filterManager.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
             isSpam = true;
           }
@@ -539,15 +539,21 @@ async filterSpamPosts() {
       console.error('Error in filterSpamPosts:', error.message);
     }
   }
+}
 
-  const contentFilter = new ContentFilter();
+const contentFilter = new ContentFilter();
 
-  function handleErrors(event) {
-    console.error(
-      `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
-      event.error
-    );
-  }
+function handleErrors(event) {
+  console.error(`An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`, event.error);
+}
+
+window.addEventListener('error', handleErrors);
+
+try {
+  contentFilter.filterSpamPosts();
+} catch (error) {
+  console.error('Error in filterSpamPosts:', error.message);
+}
   
   window.addEventListener('error', handleErrors);
   
