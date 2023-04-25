@@ -287,7 +287,7 @@ class ConfigurationManager {
   constructor() {
     this.initialize();
   }
-
+  
   async initialize() {
     this.config = await this.loadConfig();
   }
@@ -362,7 +362,7 @@ class FilterManager {
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
     this.initializeFilters();
   }
-
+  
   initializeFilters() {
     if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
       this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
@@ -473,7 +473,6 @@ class ContentFilter {
     spoilerContent.textContent = content;
     spoiler.appendChild(spoilerContent);
     spoilerContent.style.display = 'none';
-    // resizeSpoilerContent(spoiler); // Implement the logic to resize the spoiler
     return spoiler;
   }
 
@@ -505,12 +504,58 @@ class ContentFilter {
   }
 }
 
-const contentFilter = new ContentFilter();
+class SpamFilter {
+  constructor() {
+    this.configManager = new ConfigurationManager();
+    this.workerManager = new WorkerManager(); // Assuming WorkerManager implementation exists
+    this.postParser = new PostParser();
+    this.configManager.loadConfig().then((config) => {
+      this.filterManager = new FilterManager(config);
+      this.contentFilter = new ContentFilter();
+    });
+  }
+  
+  async filterSpamPosts() {
+    try {
+      const posts = this.postParser.getPostElements();
+      const hierarchicalStructure = this.postParser.extractHierarchicalStructure();
+      const userHiddenAuthors = this.filterManager.config.USER_HIDDEN_AUTHORS;
+      const maxHammingDistance = this.filterManager.config.MAX_HAMMING_DISTANCE;
+      for (const post of posts) {
+        const { date: dateStr, author, content, id, postTable } = post;
+        let isSpam = false;
+        if (userHiddenAuthors.includes(author)) {
+          isSpam = true;
+        }
+        if (content.length >= this.filterManager.config.LONG_POST_THRESHOLD) {
+          if (this.filterManager.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
+            isSpam = true;
+          }
+          const simHash = await this.workerManager.computeSimHash(content);
+          const cacheKeys = this.filterManager.lruCache.getKeys();
+          if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
+            isSpam = true;
+          }
+          if (!this.filterManager.lruCache.has(simHash)) {
+            this.filterManager.lruCache.put(simHash, true);
+          }
+        }
+        if (isSpam) {
+          const spoiler = this.createSpoiler(content); // Note: createSpoiler needs to be defined in this class or passed as a dependency
+          postTable.replaceChild(spoiler, postTable.querySelector("table font"));
+        }
+      }
+    } catch (error) {
+      console.error('Error in filterSpamPosts:', error.message);
+    }
+  }
+}
+
+const spamFilter = new SpamFilter();
 
 function handleErrors(event) {
   console.error(
-    `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\n
-    Line: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
+    `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
     event.error
   );
 }
@@ -518,7 +563,7 @@ function handleErrors(event) {
 window.addEventListener('error', handleErrors);
 
 try {
-  contentFilter.filterSpamPosts(); // Call the filterSpamPosts method of the contentFilter instance
+  spamFilter.filterSpamPosts(); // Call the filterSpamPosts method of the spamFilter instance
 } catch (error) {
   console.error('Error in filterSpamPosts:', error.message);
 }
