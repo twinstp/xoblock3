@@ -519,6 +519,10 @@ class ContentFilter {
     if (!this.filterManager) {
       return; // filterManager not yet initialized
     }
+    if (!navigator.serviceWorker.controller) {
+      console.error('Service worker is not active');
+      return;
+    }
     const posts = this.postParser.getPostElements();
     const longPosts = posts.filter(
       (post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
@@ -531,7 +535,10 @@ class ContentFilter {
         if (event.data.action === 'computeSimHash') {
           const simHash = event.data.hash;
           const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
-            return SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE;
+            return (
+              SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
+              this.filterManager.config.MAX_HAMMING_DISTANCE
+            );
           });
           if (isSpam) {
             const spoiler = this.createSpoiler(content);
@@ -549,5 +556,4 @@ class ContentFilter {
     });
   }
 }
-
 const contentFilter = new ContentFilter();
