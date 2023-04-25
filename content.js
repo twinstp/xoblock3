@@ -421,7 +421,7 @@ class PostParser {
       const bElements = table.querySelectorAll("b");
       // Find the "Author:" element and extract the author
       const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
-      const author = authorElement ? author      Element.nextSibling.textContent.trim() : null;
+      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
       // Find the "Date:" element and extract the date
       const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
       const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
