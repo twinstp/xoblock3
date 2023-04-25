@@ -544,21 +544,16 @@ async filterSpamPosts() {
 const contentFilter = new ContentFilter();
 
 function handleErrors(event) {
-  console.error(`An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`, event.error);
+  console.error(
+    `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
+    event.error
+  );
 }
 
 window.addEventListener('error', handleErrors);
 
 try {
-  contentFilter.filterSpamPosts();
+  contentFilter.filterSpamPosts(); // Call the filterSpamPosts method of the contentFilter instance
 } catch (error) {
   console.error('Error in filterSpamPosts:', error.message);
 }
-  
-  window.addEventListener('error', handleErrors);
-  
-  try {
-    contentFilter.filterSpamPosts();
-  } catch (error) {
-    console.error('Error in filterSpamPosts:', error.message);
-  }  
