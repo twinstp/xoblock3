@@ -336,7 +336,7 @@ class ConfigurationManager {
       document.getElementById('hidden-authors').value = config.USER_HIDDEN_AUTHORS.join('\n');
       document.getElementById('save-config').addEventListener('click', () => {
         const maxCacheSize = parseInt(document.getElementById('max-cache-size').value, 10);
-        const maxHamming Distance = parseInt(document.getElementById('max-hamming-distance').value, 10);
+        const maxHammingDistance = parseInt(document.getElementById('max-hamming-distance').value, 10);
         const longPostThreshold = parseInt(document.getElementById('long-post-threshold').value, 10);
         const filteredSubstrings = document.getElementById('filtered-substrings').value.split('\n').map((s) => s.trim());
         const userHiddenAuthors = document.getElementById('hidden-authors').value.split('\n').map((s) => s.trim());
