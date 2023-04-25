@@ -535,7 +535,7 @@ class PostFilter {
 const postFilter = new PostFilter();
 
 function catchErrors() {
-  window.onerror = function (message, source, lineno, colno, error) {
+  self.onerror = function (message, source, lineno, colno, error) {
     console.error(`An unhandled error occurred: ${message}\nSource: ${source}\nLine: ${lineno}\nColumn: ${colno}\nError object:`, error);
     return true;
   };
