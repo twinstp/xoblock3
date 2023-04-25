@@ -244,6 +244,7 @@ class WorkerManager {
     this.worker = null;
     this.initializeWorker();
   }
+
   initializeWorker() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').then(() => {
@@ -308,10 +309,14 @@ class ConfigurationManager {
   }
   async loadConfig() {
     console.log('Loading config...');
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       chrome.storage.local.get('config', (storedData) => {
-        this.config = storedData?.config || this.getInitialConfig();
-        resolve(this.config);
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          this.config = storedData?.config || this.getInitialConfig();
+          resolve(this.config);
+        }
       });
     });
   }
@@ -484,15 +489,17 @@ class ContentFilter {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { content, postTable } = post;
-      if (this.filterManager && this.filterManager.bloomFilter &&
-          this.filterManager.bloomFilter.test(content) &&
-          this.filterManager.substringTrie.search(content)) {
+      if (this.filterManager && this.filterManager.bloomFilter && this.filterManager.bloomFilter.test(content) && this.filterManager.substringTrie.search(content)) {
         const spoiler = this.createSpoiler(content);
         postTable.replaceChild(spoiler, postTable.querySelector("table font"));
       }
     }
   }
+
   filterSpamPostsBySimHash() {
+    if (!this.filterManager) {
+      return; // filterManager not yet initialized
+    }
     const posts = this.postParser.getPostElements();
     const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
     Promise.all(longPosts.map(async (post) => {
@@ -511,4 +518,4 @@ class ContentFilter {
   }
 }
 
-const contentFilter = new ContentFilter(); // This will now initialize filters after config is loaded
+const contentFilter = new ContentFilter();
