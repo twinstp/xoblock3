@@ -539,7 +539,6 @@ async filterSpamPosts() {
       console.error('Error in filterSpamPosts:', error.message);
     }
   }
-}
 
 const contentFilter = new ContentFilter();
 
