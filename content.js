@@ -507,19 +507,26 @@ class ContentFilter {
   filterPostsBySubstrings() {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
-      const { content, postTable } = post;
+      const { content, postTable, id } = post;
+      // Use XOR filter to check whether the post contains a filtered substring
       if (
         this.filterManager &&
         this.filterManager.bloomFilter &&
         this.filterManager.bloomFilter.test(content) &&
+        this.filterManager.xorFilter.mayContain(content) &&
         this.filterManager.substringTrie.search(content)
       ) {
         const spoiler = this.createSpoiler(content);
-        postTable.replaceChild(spoiler, postTable.querySelector('table font'));
+        const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
+        if (contentElement) {
+          postTable.replaceChild(spoiler, contentElement);
+        } else {
+          console.warn(`Failed to replace content for post with ID: ${id}`);
+        }
       }
     }
   }
-
+  
   async filterSpamPostsBySimHash() {
     if (!this.filterManager) {
       return;
@@ -529,8 +536,9 @@ class ContentFilter {
       (post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
     );
     for (const post of longPosts) {
-      const { content, postTable } = post;
+      const { content, postTable, id } = post;
       const simHash = await SimHashUtil.simhash(content);
+      // Use LRU cache to check for similarity with recent posts
       const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
         return (
           SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
@@ -539,7 +547,12 @@ class ContentFilter {
       });
       if (isSpam) {
         const spoiler = this.createSpoiler(content);
-        postTable.replaceChild(spoiler, postTable.querySelector('table font'));
+        const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
+        if (contentElement) {
+          postTable.replaceChild(spoiler, contentElement);
+        } else {
+          console.warn(`Failed to replace content for post with ID: ${id}`);
+        }
       } else {
         this.filterManager.lruCache.put(simHash, true);
       }
@@ -547,4 +560,5 @@ class ContentFilter {
   }
 }
 
+// Instantiate ContentFilter and filter the thread
 const contentFilter = new ContentFilter();
