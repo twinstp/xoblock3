@@ -513,8 +513,8 @@ async filterSpamPosts() {
     const maxHammingDistance = this.filterManager.config.MAX_HAMMING_DISTANCE;
     for (const post of posts) {
       const { date: dateStr, author, content, id, postTable } = post;
-        let isSpam = false;
-        if (userHiddenAuthors.includes(author)) {
+      let isSpam = false;
+      if (userHiddenAuthors.includes(author)) {
           isSpam = true;
         }
         if (content.length >= this.filterManager.config.LONG_POST_THRESHOLD) {
