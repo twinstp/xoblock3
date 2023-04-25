@@ -418,7 +418,8 @@ class PostFilter {
     const posts = Array.from(messageTables)
       .filter((table) => !table.hasAttribute("cellspacing"))
       .map((table) => {
-        const authorElement = table.querySelector("b:contains('Author:')");
+        const bElements = table.querySelectorAll("b");
+        const authorElement = Array.from(bElements).find(b => b.textContent.trim() === 'Author:');
         const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
         const dateElement = table.querySelector("b:contains('Date:')");
         const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
