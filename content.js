@@ -505,14 +505,14 @@ class ContentFilter {
   }
 }
 
-  async filterSpamPosts() {
-    try {
-      const posts = this.postParser.getPostElements();
-      const hierarchicalStructure = this.postParser.extractHierarchicalStructure();
-      const userHiddenAuthors = this.filterManager.config.USER_HIDDEN_AUTHORS;
-      const maxHammingDistance = this.filterManager.config.MAX_HAMMING_DISTANCE;
-      for (const post of posts) {
-        const { date: dateStr, author, content, id, postTable } = post;
+async filterSpamPosts() {
+  try {
+    const posts = this.postParser.getPostElements();
+    const hierarchicalStructure = this.postParser.extractHierarchicalStructure();
+    const userHiddenAuthors = this.filterManager.config.USER_HIDDEN_AUTHORS;
+    const maxHammingDistance = this.filterManager.config.MAX_HAMMING_DISTANCE;
+    for (const post of posts) {
+      const { date: dateStr, author, content, id, postTable } = post;
         let isSpam = false;
         if (userHiddenAuthors.includes(author)) {
           isSpam = true;
