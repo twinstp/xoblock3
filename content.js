@@ -238,7 +238,7 @@ class TrieNode {
     return current.isEndOfWord;
   }
 }
-// Service Worker (for computing SHA1 and simhash)
+// ServiceWorker (for computing SHA1 and simhash)
 class WorkerManager {
   constructor() {
     this.worker = null;
@@ -247,9 +247,10 @@ class WorkerManager {
 
   initializeWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').then(() => {
-        this.worker = navigator.serviceWorker.controller;
-      });
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => {
+          this.worker = navigator.serviceWorker.controller;
+        });
     }
   }
 
@@ -281,10 +282,12 @@ class WorkerManager {
 }
 
 const workerManager = new WorkerManager();
+
 class ConfigurationManager {
   constructor() {
     this.initialize();
   }
+
   async initialize() {
     this.config = await this.loadConfig();
   }
@@ -295,7 +298,7 @@ class ConfigurationManager {
       MAX_HAMMING_DISTANCE: 5,
       LONG_POST_THRESHOLD: 25,
       FILTERED_SUBSTRINGS: [
-        'modification, and he recently agreed to answer our questions',
+        'modification, and herecently agreed to answer our questions',
         'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
         'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
         'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
@@ -304,7 +307,6 @@ class ConfigurationManager {
       USER_HIDDEN_AUTHORS: [],
     };
   }
-  
 
   async loadConfig() {
     console.log('Loading config...');
@@ -332,10 +334,9 @@ class ConfigurationManager {
       document.getElementById('long-post-threshold').value = config.LONG_POST_THRESHOLD;
       document.getElementById('filtered-substrings').value = config.FILTERED_SUBSTRINGS.join('\n');
       document.getElementById('hidden-authors').value = config.USER_HIDDEN_AUTHORS.join('\n');
-
       document.getElementById('save-config').addEventListener('click', () => {
         const maxCacheSize = parseInt(document.getElementById('max-cache-size').value, 10);
-        const maxHammingDistance = parseInt(document.getElementById('max-hamming-distance').value, 10);
+        const maxHamming Distance = parseInt(document.getElementById('max-hamming-distance').value, 10);
         const longPostThreshold = parseInt(document.getElementById('long-post-threshold').value, 10);
         const filteredSubstrings = document.getElementById('filtered-substrings').value.split('\n').map((s) => s.trim());
         const userHiddenAuthors = document.getElementById('hidden-authors').value.split('\n').map((s) => s.trim());
@@ -361,7 +362,7 @@ class FilterManager {
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
     this.initializeFilters();
   }
-  
+
   initializeFilters() {
     if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
       this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
@@ -420,7 +421,7 @@ class PostParser {
       const bElements = table.querySelectorAll("b");
       // Find the "Author:" element and extract the author
       const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
-      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+      const author = authorElement ? author      Element.nextSibling.textContent.trim() : null;
       // Find the "Date:" element and extract the date
       const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
       const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
@@ -447,7 +448,6 @@ class PostParser {
     }).filter(Boolean);
     return posts;
   }
-
 }
 
 class ContentFilter {
@@ -497,7 +497,7 @@ class ContentFilter {
       const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE);
       if (isSpam) {
         const spoiler = this.createSpoiler(content);
-        postTable.replaceChild(spoiler, postTable.querySelector("tablefont"));
+        postTable.replaceChild(spoiler, postTable.querySelector("table font"));
       } else {
         this.filterManager.lruCache.put(simHash, true);
       }
@@ -505,47 +505,12 @@ class ContentFilter {
   }
 }
 
-async filterSpamPosts() {
-  try {
-    const posts = this.postParser.getPostElements();
-    const hierarchicalStructure = this.postParser.extractHierarchicalStructure();
-    const userHiddenAuthors = this.filterManager.config.USER_HIDDEN_AUTHORS;
-    const maxHammingDistance = this.filterManager.config.MAX_HAMMING_DISTANCE;
-    for (const post of posts) {
-      const { date: dateStr, author, content, id, postTable } = post;
-      let isSpam = false;
-      if (userHiddenAuthors.includes(author)) {
-        isSpam = true;
-      }
-      if (content.length >= this.filterManager.config.LONG_POST_THRESHOLD) {
-          if (this.filterManager.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
-            isSpam = true;
-          }
-          const simHash = await this.workerManager.computeSimHash(content);
-          const cacheKeys = this.filterManager.lruCache.getKeys();
-          if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
-            isSpam = true;
-          }
-          if (!this.filterManager.lruCache.has(simHash)) {
-            this.filterManager.lruCache.put(simHash, true);
-          }
-        }
-        if (isSpam) {
-          const spoiler = this.createSpoiler(content);
-          postTable.replaceChild(spoiler, postTable.querySelector("table font"));
-        }
-      }
-    } catch (error) {
-      console.error('Error in filterSpamPosts:', error.message);
-    }
-  }
-}
-
 const contentFilter = new ContentFilter();
 
 function handleErrors(event) {
   console.error(
-    `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
+    `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\n
+    Line: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
     event.error
   );
 }
