@@ -32,11 +32,13 @@ class SimHashUtil {
         switch (request.action) {
           case 'computeSimHash':
             const simHash = await SimHashUtil.simhash(request.content);
-            event.source.postMessage({ action: 'computeSimHash', hash: simHash });
+            // Use event.ports[0].postMessage to send a message back
+            event.ports[0].postMessage({ action: 'computeSimHash', hash: simHash });
             break;
           case 'compareHammingDistance':
             const distance = SimHashUtil.hammingDistance(request.hash1, request.hash2);
-            event.source.postMessage({ action: 'compareHammingDistance', distance });
+            // Use event.ports[0].postMessage to send a message back
+            event.ports[0].postMessage({ action: 'compareHammingDistance', distance });
             break;
           default:
             break;
@@ -45,9 +47,11 @@ class SimHashUtil {
         console.error('Error in service worker:', error.message);
       }
     });
+    
     self.addEventListener('install', () => {
       self.skipWaiting();
     });
+    
     self.addEventListener('activate', (event) => {
       event.waitUntil(self.clients.claim());
     });    

@@ -241,7 +241,6 @@ class TrieNode {
 // ServiceWorker (for computing SHA1 and simhash)
 class WorkerManager {
   constructor() {
-    this.worker = null;
     this.initializeWorker();
   }
 
@@ -249,52 +248,54 @@ class WorkerManager {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').then(() => {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          this.worker = navigator.serviceWorker.controller;
+          // Service worker is now active
         });
       });
     }
   }
+
   computeSHA1(message) {
     return new Promise((resolve, reject) => {
-      if (!this.worker) {
-        reject(new Error('Service worker is not defined'));
-        return;
-      }
-      this.worker.postMessage({ action: 'computeDigest', token: message });
-      const digestListener = (event) => {
+      const messageChannel = new MessageChannel();
+      messageChannel.port1.onmessage = (event) => {
         if (event.data.action === 'computeDigest') {
-          this.worker.removeEventListener('message', digestListener);
           resolve(event.data.hash);
         }
       };
-      this.worker.addEventListener('message', digestListener);
+      navigator.serviceWorker.controller.postMessage(
+        { action: 'computeDigest', token: message },
+        [messageChannel.port2]
+      );
     });
   }
+
   computeSimHash(content) {
     return new Promise((resolve, reject) => {
-      if (!this.worker) {
-        reject(new Error('Service worker is not defined'));
-        return;
-      }
-      this.worker.postMessage({ action: 'computeSimHash', content });
-      const simHashListener = (event) => {
+      const messageChannel = new MessageChannel();
+      messageChannel.port1.onmessage = (event) => {
         if (event.data.action === 'computeSimHash') {
-          this.worker.removeEventListener('message', simHashListener);
           resolve(event.data.hash);
         }
       };
-      this.worker.addEventListener('message', simHashListener);
+      navigator.serviceWorker.controller.postMessage(
+        { action: 'computeSimHash', content },
+        [messageChannel.port2]
+      );
     });
   }
 }
+
 const workerManager = new WorkerManager();
 
 class ConfigurationManager {
   constructor() {
     this.initialize();
   }
-  async initialize() {
-    this.config = await this.loadConfig();
+
+  initialize() {
+    this.loadConfig().then((config) => {
+      this.config = config;
+    });
   }
   getInitialConfig() {
     return {
@@ -467,7 +468,6 @@ class PostParser {
 class ContentFilter {
   constructor() {
     this.configManager = new ConfigurationManager();
-    this.workerManager = new WorkerManager();
     this.postParser = new PostParser();
     this.configManager.loadConfig().then((config) => {
       this.filterManager = new FilterManager(config);
@@ -475,6 +475,7 @@ class ContentFilter {
       this.filterSpamPostsBySimHash();
     });
   }
+
   createSpoiler(content) {
     const spoiler = document.createElement('div');
     spoiler.classList.add('spoiler');
@@ -489,13 +490,19 @@ class ContentFilter {
     spoilerContent.style.display = 'none';
     return spoiler;
   }
+
   filterPostsBySubstrings() {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { content, postTable } = post;
-      if (this.filterManager && this.filterManager.bloomFilter && this.filterManager.bloomFilter.test(content) && this.filterManager.substringTrie.search(content)) {
+      if (
+        this.filterManager &&
+        this.filterManager.bloomFilter &&
+        this.filterManager.bloomFilter.test(content) &&
+        this.filterManager.substringTrie.search(content)
+      ) {
         const spoiler = this.createSpoiler(content);
-        postTable.replaceChild(spoiler, postTable.querySelector("table font"));
+        postTable.replaceChild(spoiler, postTable.querySelector('table font'));
       }
     }
   }
@@ -505,20 +512,33 @@ class ContentFilter {
       return; // filterManager not yet initialized
     }
     const posts = this.postParser.getPostElements();
-    const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
-    Promise.all(longPosts.map(async (post) => {
+    const longPosts = posts.filter(
+      (post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
+    );
+    longPosts.forEach((post) => {
       const { content, postTable } = post;
-      const simHash = await this.workerManager.computeSimHash(content);
-      const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
-        return SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE;
-      });
-      if (isSpam) {
-        const spoiler = this.createSpoiler(content);
-        postTable.replaceChild(spoiler, postTable.querySelector("table font"));
-      } else {
-        this.filterManager.lruCache.put(simHash, true);
-      }
-    }));
+      // Create a MessageChannel to communicate with the service worker
+      const messageChannel = new MessageChannel();
+      messageChannel.port1.onmessage = (event) => {
+        if (event.data.action === 'computeSimHash') {
+          const simHash = event.data.hash;
+          const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
+            return SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE;
+          });
+          if (isSpam) {
+            const spoiler = this.createSpoiler(content);
+            postTable.replaceChild(spoiler, postTable.querySelector('table font'));
+          } else {
+            this.filterManager.lruCache.put(simHash, true);
+          }
+        }
+      };
+      // Post a message to the service worker using the MessageChannel
+      navigator.serviceWorker.controller.postMessage(
+        { action: 'computeSimHash', content },
+        [messageChannel.port2]
+      );
+    });
   }
 }
 
