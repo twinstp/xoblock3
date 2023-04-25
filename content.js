@@ -286,6 +286,7 @@ class WorkerManager {
       this.worker.addEventListener('message', simHashListener);
     });
   }
+}
 const workerManager = new WorkerManager();
 
 class ConfigurationManager {
