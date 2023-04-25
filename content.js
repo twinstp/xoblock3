@@ -244,16 +244,13 @@ class WorkerManager {
     this.worker = null;
     this.initializeWorker();
   }
-
   initializeWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(() => {
-          this.worker = navigator.serviceWorker.controller;
-        });
+      navigator.serviceWorker.register('service-worker.js').then(() => {
+        this.worker = navigator.serviceWorker.controller;
+      });
     }
   }
-
   computeSHA1(message) {
     return new Promise((resolve) => {
       this.worker.postMessage({ action: 'computeDigest', token: message });
@@ -266,7 +263,6 @@ class WorkerManager {
       this.worker.addEventListener('message', digestListener);
     });
   }
-
   computeSimHash(content) {
     return new Promise((resolve) => {
       this.worker.postMessage({ action: 'computeSimHash', content });
@@ -280,18 +276,15 @@ class WorkerManager {
     });
   }
 }
-
 const workerManager = new WorkerManager();
 
 class ConfigurationManager {
   constructor() {
     this.initialize();
   }
-  
   async initialize() {
     this.config = await this.loadConfig();
   }
-
   getInitialConfig() {
     return {
       MAX_CACHE_SIZE: 1000,
@@ -307,7 +300,6 @@ class ConfigurationManager {
       USER_HIDDEN_AUTHORS: [],
     };
   }
-
   async loadConfig() {
     console.log('Loading config...');
     return new Promise((resolve) => {
@@ -317,15 +309,12 @@ class ConfigurationManager {
       });
     });
   }
-
   saveConfig(newConfig) {
-    // Save the updated configuration
     chrome.storage.local.set({ config: newConfig }, () => {
       console.log('Configuration updated:', newConfig);
       alert('Configuration saved successfully.');
     });
   }
-
   setupDOMBindings() {
     document.addEventListener('DOMContentLoaded', () => {
       const config = this.config;
@@ -335,7 +324,7 @@ class ConfigurationManager {
       document.getElementById('filtered-substrings').value = config.FILTERED_SUBSTRINGS.join('\n');
       document.getElementById('hidden-authors').value = config.USER_HIDDEN_AUTHORS.join('\n');
       document.getElementById('save-config').addEventListener('click', () => {
-        const maxCacheSize = parseInt(document.getElementById('max-cache-size').value, 10);
+        const maxCacheSize = parseInt(document.getElementById('max-cache-size').value,         10);
         const maxHammingDistance = parseInt(document.getElementById('max-hamming-distance').value, 10);
         const longPostThreshold = parseInt(document.getElementById('long-post-threshold').value, 10);
         const filteredSubstrings = document.getElementById('filtered-substrings').value.split('\n').map((s) => s.trim());
@@ -357,14 +346,18 @@ class FilterManager {
   constructor(config) {
     this.config = config;
     this.substringTrie = new TrieNode();
+    this.authorTrie = new TrieNode(); // Initialize a Trie to store blocked authors
     this.bloomFilter = new BloomFilter(10000, 5);
-    this.xorFilter = new XORFilter(Array.from(config.FILTERED_SUBSTRINGS));
+    this.xorFilter = null;
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
     this.initializeFilters();
   }
-  
-  initializeFilters() {
+  async initializeFilters() {
     if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
+      const filteredHashes = await Promise.all(this.config.FILTERED_SUBSTRINGS.map(async (substring) => {
+        return await workerManager.computeSHA1(substring);
+      }));
+      this.xorFilter = new XORFilter(filteredHashes);
       this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
         this.substringTrie.insert(substring);
         this.bloomFilter.add(substring);
@@ -373,21 +366,23 @@ class FilterManager {
     } else {
       console.error('config.FILTERED_SUBSTRINGS is not defined or not an array');
     }
+    if (Array.isArray(this.config.USER_HIDDEN_AUTHORS)) {
+      this.config.USER_HIDDEN_AUTHORS.forEach((author) => {
+        this.authorTrie.insert(author);
+      });
+    }
   }
 }
 
 class PostParser {
-  constructor() {}
-
+  constructor() { }
   isAllWhitespace(text) {
     return /^\s*$/.test(text);
   }
-
   extractText(input) {
     const regex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
     return input.replace(regex, '').replace(/^\)/, '').trim();
   }
-
   extractResponses(parent, parentResponse = null, visitedNodes = new Set()) {
     const responseEntries = [];
     parent.querySelectorAll('a[href^="#"]').forEach((anchor) => {
@@ -406,15 +401,13 @@ class PostParser {
     });
     return responseEntries;
   }
-
   extractHierarchicalStructure() {
     const pageContent = document.documentElement.innerHTML;
     const parser = new DOMParser();
     const parsedDoc = parser.parseFromString(pageContent, 'text/html');
     return this.extractResponses(parsedDoc.body);
   }
-
-  getPostElements() {
+  getPostElements() { 
     const messageTables = document.querySelectorAll("table[width='700']");
     const posts = [...messageTables].filter((table) => !table.hasAttribute("cellspacing")).map((table) => {
       // Locate the <b> elements in the table
@@ -453,14 +446,12 @@ class PostParser {
 class ContentFilter {
   constructor() {
     this.configManager = new ConfigurationManager();
-    this.workerManager = new WorkerManager(); // Assuming WorkerManager implementation exists
+    this.workerManager = new WorkerManager();
     this.postParser = new PostParser();
     this.configManager.loadConfig().then((config) => {
       this.filterManager = new FilterManager(config);
     });
   }
-
-  // Method to create a spoiler
   createSpoiler(content) {
     const spoiler = document.createElement('div');
     spoiler.classList.add('spoiler');
@@ -475,7 +466,6 @@ class ContentFilter {
     spoilerContent.style.display = 'none';
     return spoiler;
   }
-
   filterPostsBySubstrings() {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
@@ -486,14 +476,15 @@ class ContentFilter {
       }
     }
   }
-
   filterSpamPostsBySimHash() {
     const posts = this.postParser.getPostElements();
     const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
     Promise.all(longPosts.map(async (post) => {
       const { content, postTable } = post;
       const simHash = await this.workerManager.computeSimHash(content);
-      const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE);
+      const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
+        return SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE;
+      });
       if (isSpam) {
         const spoiler = this.createSpoiler(content);
         postTable.replaceChild(spoiler, postTable.querySelector("table font"));
@@ -504,66 +495,7 @@ class ContentFilter {
   }
 }
 
-class SpamFilter {
-  constructor() {
-    this.configManager = new ConfigurationManager();
-    this.workerManager = new WorkerManager(); // Assuming WorkerManager implementation exists
-    this.postParser = new PostParser();
-    this.configManager.loadConfig().then((config) => {
-      this.filterManager = new FilterManager(config);
-      this.contentFilter = new ContentFilter();
-    });
-  }
-  
-  async filterSpamPosts() {
-    try {
-      const posts = this.postParser.getPostElements();
-      const hierarchicalStructure = this.postParser.extractHierarchicalStructure();
-      const userHiddenAuthors = this.filterManager.config.USER_HIDDEN_AUTHORS;
-      const maxHammingDistance = this.filterManager.config.MAX_HAMMING_DISTANCE;
-      for (const post of posts) {
-        const { date: dateStr, author, content, id, postTable } = post;
-        let isSpam = false;
-        if (userHiddenAuthors.includes(author)) {
-          isSpam = true;
-        }
-        if (content.length >= this.filterManager.config.LONG_POST_THRESHOLD) {
-          if (this.filterManager.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
-            isSpam = true;
-          }
-          const simHash = await this.workerManager.computeSimHash(content);
-          const cacheKeys = this.filterManager.lruCache.getKeys();
-          if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
-            isSpam = true;
-          }
-          if (!this.filterManager.lruCache.has(simHash)) {
-            this.filterManager.lruCache.put(simHash, true);
-          }
-        }
-        if (isSpam) {
-          const spoiler = this.createSpoiler(content); // Note: createSpoiler needs to be defined in this class or passed as a dependency
-          postTable.replaceChild(spoiler, postTable.querySelector("table font"));
-        }
-      }
-    } catch (error) {
-      console.error('Error in filterSpamPosts:', error.message);
-    }
-  }
-}
-
-const spamFilter = new SpamFilter();
-
-function handleErrors(event) {
-  console.error(
-    `An unhandled error occurred: ${event.message}\nSource: ${event.filename}\nLine: ${event.lineno}\nColumn: ${event.colno}\nError object:`,
-    event.error
-  );
-}
-
-window.addEventListener('error', handleErrors);
-
-try {
-  spamFilter.filterSpamPosts(); // Call the filterSpamPosts method of the spamFilter instance
-} catch (error) {
-  console.error('Error in filterSpamPosts:', error.message);
-}
+const config = new ConfigurationManager().getInitialConfig();
+const contentFilter = new ContentFilter();
+contentFilter.filterPostsBySubstrings();
+contentFilter.filterSpamPostsBySimHash();
