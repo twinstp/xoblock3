@@ -1,83 +1,5 @@
-// deno-lint-ignore-file no-var ban-unused-ignore
 'use strict';
-// ## SHA1 implementation (minified) - NEED TO ADD HERE NOT CALL CRYPTO OR SUBTLE JS B/C OF CPS AND MANIFEST V3
-// deno-lint-ignore no-var
-var SHA1=
-"undefined"!=typeof exports?exports:{};!function(t){var r=[1518500249,1859775393,-1894007588,-899497514],i={sha1:1};SHA1.createHash=function(t){if(t&&!i[t]&&!i[t.toLowerCase()])throw new Error("Digest method not supported");return new s};var n,s=function(){function t(){this.A=1732584193,this.B=-271733879,this.C=-1732584194,this.D=271733878,this.E=-1009589776,this.t=0,this.i=0,(!n||e>=8e3)&&(n=new ArrayBuffer(8e3),e=0),this.h=new Uint8Array(n,e,80),this.o=new Int32Array(n,e,20),e+=80}return t.prototype.update=function(t){if("string"==typeof t)return this.u(t);if(null==t)throw new TypeError("Invalid type: "+typeof t);var r=t.byteOffset,i=t.byteLength,n=i/64|0,s=0;if(n&&!(3&r)&&!(this.t%64)){for(var h=new Int32Array(t.buffer,r,16*n);n--;)this.v(h,s>>2),s+=64;this.t+=s}if(1!==t.BYTES_PER_ELEMENT&&t.buffer){var e=new Uint8Array(t.buffer,r+s,i-s);return this.p(e)}return s===i?this:this.p(t,s)},t.prototype.p=function(t,r){var i=this.h,n=this.o,s=t.length;for(r|=0;r<s;){for(var h=this.t%64,e=h;r<s&&e<64;)i[e++]=t[r++];e>=64&&this.v(n),this.t+=e-h}return this},t.prototype.u=function(t){for(var r=this.h,i=this.o,n=t.length,s=this.i,h=0;h<n;){for(var e=this.t%64,f=e;h<n&&f<64;){var o=0|t.charCodeAt(h++);o<128?r[f++]=o:o<2048?(r[f++]=192|o>>>6,r[f++]=128|63&o):o<55296||o>57343?(r[f++]=224|o>>>12,r[f++]=128|o>>>6&63,r[f++]=128|63&o):s?(o=((1023&s)<<10)+(1023&o)+65536,r[f++]=240|o>>>18,r[f++]=128|o>>>12&63,r[f++]=128|o>>>6&63,r[f++]=128|63&o,s=0):s=o}f>=64&&(this.v(i),i[0]=i[16]),this.t+=f-e}return this.i=s,this},t.prototype.v=function(t,i){var n=this,s=n.A,e=n.B,f=n.C,w=n.D,y=n.E,A=0;for(i|=0;A<16;)h[A++]=o(t[i++]);for(A=16;A<80;A++)h[A]=u(h[A-3]^h[A-8]^h[A-14]^h[A-16]);for(A=0;A<80;A++){var p=A/20|0,d=a(s)+v(p,e,f,w)+y+h[A]+r[p]|0;y=w,w=f,f=c(e),e=s,s=d}this.A=s+this.A|0,this.B=e+this.B|0,this.C=f+this.C|0,this.D=w+this.D|0,this.E=y+this.E|0},t.prototype.digest=function(t){var r=this.h,i=this.o,n=this.t%64|0;for(r[n++]=128;3&n;)r[n++]=0;if((n>>=2)>14){for(;n<16;)i[n++]=0;n=0,this.v(i)}for(;n<16;)i[n++]=0;var s=8*this.t,h=(4294967295&s)>>>0,e=(s-h)/4294967296;return e&&(i[14]=o(e)),h&&(i[15]=o(h)),this.v(i),"hex"===t?this.I():this.U()},t.prototype.I=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E;return f(r)+f(i)+f(n)+f(s)+f(h)},t.prototype.U=function(){var t=this,r=t.A,i=t.B,n=t.C,s=t.D,h=t.E,e=t.h,f=t.o;return f[0]=o(r),f[1]=o(i),f[2]=o(n),f[3]=o(s),f[4]=o(h),e.slice(0,20)},t}(),h=new Int32Array(80),e=0,f=function(t){return(t+4294967296).toString(16).substr(-8)},o=254===new Uint8Array(new Uint16Array([65279]).buffer)[0]?function(t){return t}:function(t){return t<<24&4278190080|t<<8&16711680|t>>8&65280|t>>24&255},u=function(t){return t<<1|t>>>31},a=function(t){return t<<5|t>>>27},c=function(t){return t<<30|t>>>2};function v(t,r,i,n){return 0===t?r&i|~r&n:2===t?r&i|r&n|i&n:r^i^n}}();
-// ## UTILITY FUNCTIONS ##
-class ConfigurationManager {
-  constructor() {
-    this.config = null;
-    this.loadConfig().then(() => {
-      // Set up DOM bindings after config is loaded
-      this.setupDOMBindings();
-    });
-  }
-
-  getInitialConfig() {
-    return {
-      MAX_CACHE_SIZE: 1000,
-      MAX_HAMMING_DISTANCE: 5,
-      LONG_POST_THRESHOLD: 25,
-      FILTERED_SUBSTRINGS: [
-        'modification, and he recently agreed to answer our questions',
-        'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
-        'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
-        'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
-        'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
-      ],
-      USER_HIDDEN_AUTHORS: [],
-    };
-  }
-
-  async loadConfig() {
-    this.config = await this.configManager.loadConfig();
-      console.log('Loading config...');
-    return new Promise((resolve) => {
-      chrome.storage.local.get('config', (storedData) => {
-        this.config = storedData?.config || this.getInitialConfig();
-        resolve(this.config);
-      });
-    });
-  }
-
-  saveConfig(newConfig) {
-    chrome.storage.local.set({ config: newConfig }, () => {
-      console.log('Configuration updated:', newConfig);
-      alert('Configuration saved successfully.');
-    });
-  }
-
-  setupDOMBindings() {
-    document.addEventListener('DOMContentLoaded', () => {
-      const config = this.config;
-      document.getElementById('max-cache-size').value = config.MAX_CACHE_SIZE;
-      document.getElementById('max-hamming-distance').value = config.MAX_HAMMING_DISTANCE;
-      document.getElementById('long-post-threshold').value = config.LONG_POST_THRESHOLD;
-      document.getElementById('filtered-substrings').value = config.FILTERED_SUBSTRINGS.join('\n');
-      document.getElementById('hidden-authors').value = config.USER_HIDDEN_AUTHORS.join('\n');
-
-      document.getElementById('save-config').addEventListener('click', () => {
-        const maxCacheSize = parseInt(document.getElementById('max-cache-size').value, 10);
-        const maxHammingDistance = parseInt(document.getElementById('max-hamming-distance').value, 10);
-        const longPostThreshold = parseInt(document.getElementById('long-post-threshold').value, 10);
-        const filteredSubstrings = document.getElementById('filtered-substrings').value.split('\n').map((s) => s.trim());
-        const userHiddenAuthors = document.getElementById('hidden-authors').value.split('\n').map((s) => s.trim());
-        const newConfig = {
-          MAX_CACHE_SIZE: maxCacheSize,
-          MAX_HAMMING_DISTANCE: maxHammingDistance,
-          LONG_POST_THRESHOLD: longPostThreshold,
-          FILTERED_SUBSTRINGS: filteredSubstrings,
-          USER_HIDDEN_AUTHORS: userHiddenAuthors,
-        };
-        this.saveConfig(newConfig);
-      });
-    });
-  }
-}
-
-const configManager = new ConfigurationManager();
-
+// ## DATA STRUCTURES ##
 class XORFilter {
   constructor(keys, seed = 123456789) {
     this.fingerprintSize = 8;
@@ -180,12 +102,11 @@ class XORFilter {
     return (f & 0xff) === 0;
   }
 }
-// Bloom Filter class
 class BloomFilter {
   constructor(size, numHashes) {
     this.size = size;
     this.numHashes = numHashes;
-    this.bits = new Uint8Array(size / 8);
+    this.bits = new Uint8Array(Math.floor(size / 8));
     this.seed = 12345;
   }
 
@@ -207,6 +128,9 @@ class BloomFilter {
   }
 
   hash(element, hashIndex) {
+    if (!element) {
+      return 0;
+    }
     let hash = this.seed * hashIndex;
     for (const char of [...element]) {
       hash = hash * this.seed + char.charCodeAt(0);
@@ -301,6 +225,9 @@ class TrieNode {
   }
 
   search(word) {
+    if (!word) {
+      return false;
+    }
     let current = this;
     for (const ch of word) {
       if (!current.children.has(ch)) {
@@ -311,7 +238,7 @@ class TrieNode {
     return current.isEndOfWord;
   }
 }
-// Service Worker
+// Service Worker (for computing SHA1 and simhash)
 class WorkerManager {
   constructor() {
     this.worker = null;
@@ -319,7 +246,7 @@ class WorkerManager {
   }
 
   initializeWorker() {
-    if ('serviceWorker' in navigator)   {
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').then(() => {
         this.worker = navigator.serviceWorker.controller;
       });
@@ -329,42 +256,113 @@ class WorkerManager {
   computeSHA1(message) {
     return new Promise((resolve) => {
       this.worker.postMessage({ action: 'computeDigest', token: message });
-      this.worker.addEventListener('message', (event) => {
-        resolve(event.data.hash);
-      });
+      const digestListener = (event) => {
+        if (event.data.action === 'computeDigest') {
+          this.worker.removeEventListener('message', digestListener);
+          resolve(event.data.hash);
+        }
+      };
+      this.worker.addEventListener('message', digestListener);
     });
   }
 
   computeSimHash(content) {
     return new Promise((resolve) => {
       this.worker.postMessage({ action: 'computeSimHash', content });
-      this.worker.addEventListener('message', (event) => {
-        resolve(event.data.hash);
-      });
+      const simHashListener = (event) => {
+        if (event.data.action === 'computeSimHash') {
+          this.worker.removeEventListener('message', simHashListener);
+          resolve(event.data.hash);
+        }
+      };
+      this.worker.addEventListener('message', simHashListener);
     });
   }
 }
 
 const workerManager = new WorkerManager();
-
-// The implementation for the class PostFilter
-class PostFilter {
+class ConfigurationManager {
   constructor() {
-    this.configManager = new ConfigurationManager();
-    this.workerManager = new WorkerManager();
-    this.substringTrie = null;
-    this.bloomFilter = null;
-    this.xorFilter = null;
-    this.lruCache = null;
-    this.loadConfig();
+    this.initialize();
+  }
+  async initialize() {
+    this.config = await this.loadConfig();
   }
 
+  getInitialConfig() {
+    return {
+      MAX_CACHE_SIZE: 1000,
+      MAX_HAMMING_DISTANCE: 5,
+      LONG_POST_THRESHOLD: 25,
+      FILTERED_SUBSTRINGS: [
+        'modification, and he recently agreed to answer our questions',
+        'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
+        'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
+        'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
+        'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
+      ],
+      USER_HIDDEN_AUTHORS: [],
+    };
+  }
+  
+
   async loadConfig() {
-    this.config = await this.configManager.loadConfig();
+    console.log('Loading config...');
+    return new Promise((resolve) => {
+      chrome.storage.local.get('config', (storedData) => {
+        this.config = storedData?.config || this.getInitialConfig();
+        resolve(this.config);
+      });
+    });
+  }
+
+  saveConfig(newConfig) {
+    // Save the updated configuration
+    chrome.storage.local.set({ config: newConfig }, () => {
+      console.log('Configuration updated:', newConfig);
+      alert('Configuration saved successfully.');
+    });
+  }
+
+  setupDOMBindings() {
+    document.addEventListener('DOMContentLoaded', () => {
+      const config = this.config;
+      document.getElementById('max-cache-size').value = config.MAX_CACHE_SIZE;
+      document.getElementById('max-hamming-distance').value = config.MAX_HAMMING_DISTANCE;
+      document.getElementById('long-post-threshold').value = config.LONG_POST_THRESHOLD;
+      document.getElementById('filtered-substrings').value = config.FILTERED_SUBSTRINGS.join('\n');
+      document.getElementById('hidden-authors').value = config.USER_HIDDEN_AUTHORS.join('\n');
+
+      document.getElementById('save-config').addEventListener('click', () => {
+        const maxCacheSize = parseInt(document.getElementById('max-cache-size').value, 10);
+        const maxHammingDistance = parseInt(document.getElementById('max-hamming-distance').value, 10);
+        const longPostThreshold = parseInt(document.getElementById('long-post-threshold').value, 10);
+        const filteredSubstrings = document.getElementById('filtered-substrings').value.split('\n').map((s) => s.trim());
+        const userHiddenAuthors = document.getElementById('hidden-authors').value.split('\n').map((s) => s.trim());
+        const newConfig = {
+          MAX_CACHE_SIZE: maxCacheSize,
+          MAX_HAMMING_DISTANCE: maxHammingDistance,
+          LONG_POST_THRESHOLD: longPostThreshold,
+          FILTERED_SUBSTRINGS: filteredSubstrings,
+          USER_HIDDEN_AUTHORS: userHiddenAuthors,
+        };
+        this.saveConfig(newConfig);
+      });
+    });
+  }
+}
+
+class FilterManager {
+  constructor(config) {
+    this.config = config;
     this.substringTrie = new TrieNode();
     this.bloomFilter = new BloomFilter(10000, 5);
-    this.xorFilter = new XORFilter(Array.from(this.config.FILTERED_SUBSTRINGS));
-    this.lruCache = new LRUCache(this.config.MAX_CACHE_SIZE);
+    this.xorFilter = new XORFilter(Array.from(config.FILTERED_SUBSTRINGS));
+    this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
+    this.initializeFilters();
+  }
+  
+  initializeFilters() {
     if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
       this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
         this.substringTrie.insert(substring);
@@ -375,10 +373,10 @@ class PostFilter {
       console.error('config.FILTERED_SUBSTRINGS is not defined or not an array');
     }
   }
+}
 
-  escapeRegexSpecialCharacters(str) {
-    return str.replace(/[-[\]\/{}()*+?.,\\^$|#\s]/g, '\\$&');
-  }
+class PostParser {
+  constructor() {}
 
   isAllWhitespace(text) {
     return /^\s*$/.test(text);
@@ -417,61 +415,73 @@ class PostFilter {
 
   getPostElements() {
     const messageTables = document.querySelectorAll("table[width='700']");
-    const posts = Array.from(messageTables)
-        .filter((table) => !table.hasAttribute("cellspacing"))
-        .map((table) => {
-            // Locate the <b> elements in the table
-            const bElements = table.querySelectorAll("b");
-            // Find the "Author:" element and extract the author
-            const authorElement = Array.from(bElements).find(
-                (b) => b.textContent.trim() === 'Author:'
-            );
-            const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-            // Find the "Date:" element and extract the date
-            const dateElement = Array.from(bElements).find(
-                (b) => b.textContent.trim() === 'Date:'
-            );
-            const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-            // Extract the post content
-            const bodyElement = table.querySelector("table font");
-            const bodyStrings = [];
-            let authorDetected = false;
-            for (const child of bodyElement.childNodes) {
-                const textContent = child.textContent.trim();
-                if (textContent.startsWith("Author:")) {
-                    authorDetected = true;
-                    continue;
-                }
-                if (authorDetected && !this.isAllWhitespace(textContent)) {
-                    bodyStrings.push(this.extractText(textContent));
-                }
-            }
-            const content = bodyStrings.join("");
-            const id = table.querySelector("a[name]")?.getAttribute("name");
-            if (!author || !dateStr || !content) {
-                return null;
-            }
-            return { date: dateStr, author, content, id, postTable: table };
-        })
-        .filter(Boolean);
+    const posts = [...messageTables].filter((table) => !table.hasAttribute("cellspacing")).map((table) => {
+      // Locate the <b> elements in the table
+      const bElements = table.querySelectorAll("b");
+      // Find the "Author:" element and extract the author
+      const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
+      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
+      // Find the "Date:" element and extract the date
+      const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
+      const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
+      // Extract the post content
+      const bodyElement = table.querySelector("table font");
+      const bodyStrings = [];
+      let authorDetected = false;
+      for (const child of bodyElement.childNodes) {
+        const textContent = child.textContent.trim();
+        if (textContent.startsWith("Author:")) {
+          authorDetected = true;
+          continue;
+        }
+        if (authorDetected && !this.isAllWhitespace(textContent)) {
+          bodyStrings.push(this.extractText(textContent));
+        }
+      }
+      const content = bodyStrings.join("");
+      const id = table.querySelector("a[name]")?.getAttribute("name");
+      if (!author || !dateStr || !content) {
+        return null;
+      }
+      return { date: dateStr, author, content, id, postTable: table };
+    }).filter(Boolean);
     return posts;
+  }
+
 }
 
+class ContentFilter {
+  constructor() {
+    this.configManager = new ConfigurationManager();
+    this.workerManager = new WorkerManager(); // Assuming WorkerManager implementation exists
+    this.postParser = new PostParser();
+    this.configManager.loadConfig().then((config) => {
+      this.filterManager = new FilterManager(config);
+    });
+  }
+
+  // Method to create a spoiler
   createSpoiler(content) {
     const spoiler = document.createElement('div');
-    spoiler.innerHTML = '<span class="spoiler-button">[Click to reveal]</span><span class="spoiler-content" style="display:none;">' + content + '</span>';
-    spoiler.querySelector('.spoiler-button').addEventListener('click', () => {
-      spoiler.querySelector('.spoiler-content').style.display = 'inline';
-      spoiler.querySelector('.spoiler-button').style.display = 'none';
-    });
+    spoiler.classList.add('spoiler');
+    const spoilerButton = document.createElement('span');
+    spoilerButton.classList.add('spoiler-button');
+    spoilerButton.textContent = 'Click to reveal';
+    spoiler.appendChild(spoilerButton);
+    const spoilerContent = document.createElement('span');
+    spoilerContent.classList.add('spoiler-content');
+    spoilerContent.textContent = content;
+    spoiler.appendChild(spoilerContent);
+    spoilerContent.style.display = 'none';
+    // resizeSpoilerContent(spoiler); // Implement the logic to resize the spoiler
     return spoiler;
   }
 
   filterPostsBySubstrings() {
-    const posts = this.getPostElements();
+    const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { content, postTable } = post;
-      if (this.bloomFilter.contains(content) && this.substringTrie.search(content)) {
+      if (this.filterManager.bloomFilter.test(content) && this.filterManager.substringTrie.search(content)) {
         const spoiler = this.createSpoiler(content);
         postTable.replaceChild(spoiler, postTable.querySelector("table font"));
       }
@@ -479,64 +489,66 @@ class PostFilter {
   }
 
   filterSpamPostsBySimHash() {
-    const posts = this.getPostElements();
-    const longPosts = posts.filter((post) => post.content.length >= this.config.LONG_POST_THRESHOLD);
-    for (const post of longPosts) {
+    const posts = this.postParser.getPostElements();
+    const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
+    Promise.all(longPosts.map(async (post) => {
       const { content, postTable } = post;
-      this.workerManager.computeSimHash(content).then((simHash) => {
-        const isSpam = this.lruCache.getKeys().some((cachedSimHash) => this.hammingDistance(simHash, cachedSimHash) <= this.config.MAX_HAMMING_DISTANCE);
-        if (isSpam) {
-          const spoiler = this.createSpoiler(content);
-          postTable.replaceChild(spoiler, postTable.querySelector("table font"));
-        } else {
-          this.lruCache.put(simHash, true);
-        }
-      });
-    }
+      const simHash = await this.workerManager.computeSimHash(content);
+      const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE);
+      if (isSpam) {
+        const spoiler = this.createSpoiler(content);
+        postTable.replaceChild(spoiler, postTable.querySelector("tablefont"));
+      } else {
+        this.filterManager.lruCache.put(simHash, true);
+      }
+    }));
   }
+}
 
   async filterSpamPosts() {
     try {
-        const posts = this.getPostElements();
-        const hierarchicalStructure = this.extractHierarchicalStructure();
-        // Check if config is defined, and use default value if USER_HIDDEN_AUTHORS is undefined
-        const userHiddenAuthors = this.config?.USER_HIDDEN_AUTHORS || [];
-        const maxHammingDistance = this.config?.MAX_HAMMING_DISTANCE || 5;
-        for (const post of posts) {
-            const { date: dateStr, author, content, id, postTable } = post;
-            let isSpam = false;
-            if (userHiddenAuthors.includes(author)) {
-                isSpam = true;
-            }
-            if (content.length >= this.config.LONG_POST_THRESHOLD) {
-                if (this.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
-                    isSpam = true;
-                }
-                const simHash = await this.workerManager.computeSimHash(content);
-                const cacheKeys = this.lruCache.getKeys();
-                if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
-                    isSpam = true;
-                }
-                if (!this.lruCache.has(simHash)) {
-                    this.lruCache.put(simHash, true);
-                }
-            }
-            if (isSpam) {
-                const spoiler = this.createSpoiler(content);
-                postTable.replaceChild(spoiler, postTable.querySelector("table font"));
-            }
+      const posts = this.postParser.getPostElements();
+      const hierarchicalStructure = this.postParser.extractHierarchicalStructure();
+      const userHiddenAuthors = this.filterManager.config.USER_HIDDEN_AUTHORS;
+      const maxHammingDistance = this.filterManager.config.MAX_HAMMING_DISTANCE;
+      for (const post of posts) {
+        const { date: dateStr, author, content, id, postTable } = post;
+        let isSpam = false;
+        if (userHiddenAuthors.includes(author)) {
+          isSpam = true;
         }
+        if (content.length >= this.filterManager.config.LONG_POST_THRESHOLD) {
+          if (this.filterManager.config.FILTERED_SUBSTRINGS.some((substring) => content.includes(substring))) {
+            isSpam = true;
+          }
+          const simHash = await this.workerManager.computeSimHash(content);
+          const cacheKeys = this.filterManager.lruCache.getKeys();
+          if (!isSpam && cacheKeys.some((cachedSimHash) => SimHashUtil.hammingDistance(simHash, cachedSimHash) <= maxHammingDistance)) {
+            isSpam = true;
+          }
+          if (!this.filterManager.lruCache.has(simHash)) {
+            this.filterManager.lruCache.put(simHash, true);
+          }
+        }
+        if (isSpam) {
+          const spoiler = this.createSpoiler(content);
+          postTable.replaceChild(spoiler, postTable.querySelector("table font"));
+        }
+      }
     } catch (error) {
-        console.error('Error in filterSpamPosts:', error.message);
+      console.error('Error in filterSpamPosts:', error.message);
     }
   }
 }
 
-const postFilter = new PostFilter();
+const contentFilter = new ContentFilter();
 
 function catchErrors() {
   self.onerror = function (message, source, lineno, colno, error) {
-    console.error(`An unhandled error occurred: ${message}\nSource: ${source}\nLine: ${lineno}\nColumn: ${colno}\nError object:`, error);
+    console.error(
+      `An unhandled error occurred: ${message}\nSource: ${source}\nLine: ${lineno}\nColumn: ${colno}\nError object:`,
+      error
+    );
     return true;
   };
 }
@@ -544,7 +556,7 @@ function catchErrors() {
 catchErrors();
 
 try {
-  postFilter.filterSpamPosts();
+  contentFilter.filterSpamPosts();
 } catch (error) {
   console.error('Error in filterSpamPosts:', error.message);
 }

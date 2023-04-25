@@ -28,3 +28,7 @@ staging/hierarchical_posts_data.json
 staging/hierarchical_posts_structure.html
 staging/posts_data_with_parent.json
 staging/XoScrapeTree.py
+staging/code.wasm
+staging/__target__/org.transcrypt.__runtime__.js
+staging/__target__/selenium.js
+.gitignore

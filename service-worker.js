@@ -53,14 +53,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Test function for SHA1
-async function testComputeSHA1() {
-  const token = 'test_token';
-  const expectedHash = 'ce094fa09693604fb88de28e4876f8c38a5548d3';
-  const computedHash = await computeSHA1(token);
-  if (computedHash === expectedHash) {
-    console.log('computeSHA1 test passed');
-  } else {
-    console.error(`computeSHA1 test failed: expected ${expectedHash}, got ${computedHash}`);
-  }
+async function computeSHA1(token) {
+  const sha1 = new SHA1();
+  sha1.update(token);
+  return sha1.digest();
 }
