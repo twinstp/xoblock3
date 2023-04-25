@@ -271,7 +271,11 @@ class WorkerManager {
     });
   }
   computeSimHash(content) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      if (!this.worker) {
+        reject(new Error('Service worker is not defined'));
+        return;
+      }
       this.worker.postMessage({ action: 'computeSimHash', content });
       const simHashListener = (event) => {
         if (event.data.action === 'computeSimHash') {
@@ -282,7 +286,6 @@ class WorkerManager {
       this.worker.addEventListener('message', simHashListener);
     });
   }
-}
 const workerManager = new WorkerManager();
 
 class ConfigurationManager {
