@@ -123,7 +123,8 @@ class BloomFilter {
   }
 
   hash(element, hashIndex) {
-    if (!element) {
+    // Gracefully handle empty strings.
+    if (!element || element.length === 0) {
       return 0;
     }
     let hash = this.seed * hashIndex;
@@ -197,6 +198,7 @@ class LRUCache {
     this.removeFromList(this.tail.prev);
   }
 }
+
 class TrieNode {
   constructor() {
     this.children = new Map();
@@ -229,13 +231,14 @@ class TrieNode {
   }
 }
 
+// UTF-8 encoding function
+function utf8_encode(str) {
+  return unescape(encodeURIComponent(str));
+}
+
 class SimHashUtil {
   static createSHA1Hash(message) {
-    // UTF-8 encoding function
-    function utf8_encode(str) {
-      return unescape(encodeURIComponent(str));
-    }
-    // SHA1 implementation
+    // SHA1 implementation [do not touch]
     function sha1(f) {
     var $,r,e,o,t,_,x,a,h,c=function(f,$){return f<<$|f>>>32-$},C=function(f){var $,r,e="";for($=7;$>=0;$--)e+=(r=f>>>4*$&15).toString(16);return e},A=Array(80),n=1732584193,s=4023233417,u=2562383102,d=271733878,i=3285377520,D=(f=utf8_encode(f)).length,p=[];for(r=0;r<D-3;r+=4)e=f.charCodeAt(r)<<24|f.charCodeAt(r+1)<<16|f.charCodeAt(r+2)<<8|f.charCodeAt(r+3),p.push(e);switch(D%4){case 0:r=2147483648;break;case 1:r=f.charCodeAt(D-1)<<24|8388608;break;case 2:r=f.charCodeAt(D-2)<<24|f.charCodeAt(D-1)<<16|32768;break;case 3:r=f.charCodeAt(D-3)<<24|f.charCodeAt(D-2)<<16|f.charCodeAt(D-1)<<8|128}for(p.push(r);p.length%16!=14;)p.push(0);for(p.push(D>>>29),p.push(D<<3&4294967295),$=0;$<p.length;$+=16){for(r=0;r<16;r++)A[r]=p[$+r];for(r=16;r<=79;r++)A[r]=c(A[r-3]^A[r-8]^A[r-14]^A[r-16],1);for(r=0,o=n,t=s,_=u,x=d,a=i;r<=19;r++)h=c(o,5)+(t&_|~t&x)+a+A[r]+1518500249&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=20;r<=39;r++)h=c(o,5)+(t^_^x)+a+A[r]+1859775393&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=40;r<=59;r++)h=c(o,5)+(t&_|t&x|_&x)+a+A[r]+2400959708&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;for(r=60;r<=79;r++)h=c(o,5)+(t^_^x)+a+A[r]+3395469782&4294967295,a=x,x=_,_=c(t,30),t=o,o=h;n=n+o&4294967295,s=s+t&4294967295,u=u+_&4294967295,d=d+x&4294967295,i=i+a&4294967295}return(h=C(n)+C(s)+C(u)+C(d)+C(i)).toLowerCase()
 }
@@ -290,18 +293,16 @@ class ConfigurationManager {
   constructor() {
     this.initialize();
   }
-
   initialize() {
     this.loadConfig().then((config) => {
       this.config = config;
     });
   }
-
   getInitialConfig() {
     return {
-      MAX_CACHE_SIZE: 1000,
-      MAX_HAMMING_DISTANCE: 5,
-      LONG_POST_THRESHOLD: 25,
+      MAX_CACHE_SIZE: DEFAULT_MAX_CACHE_SIZE,
+      MAX_HAMMING_DISTANCE: DEFAULT_MAX_HAMMING_DISTANCE,
+      LONG_POST_THRESHOLD: DEFAULT_LONG_POST_THRESHOLD,
       SIGNATURE_THRESHOLD: 100,
       FILTERED_SUBSTRINGS: [
         'modification, and he recently agreed to answer our questions',
@@ -364,7 +365,6 @@ class ConfigurationManager {
     });
   }
 }
-
 class FilterManager {
   constructor(config) {
     this.config = config;
@@ -372,14 +372,13 @@ class FilterManager {
     this.authorTrie = new TrieNode();
     this.authorBloomFilter = new BloomFilter(1000, 3);
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
-    this.xorFilter = null;
+    this.xorFilter = new XORFilter([]);
     this.collectedSignatures = [];
     this.signatureThreshold = config.SIGNATURE_THRESHOLD || 100;
     this.initializeFilters();
   }
-
-  async initializeFilters() {
-    // Initialize the SubstringSearch with pre-set spam FILTERED_SUBSTRINGS
+  initializeFilters() {
+    console.log('Initializing filters...');
     this.substringSearch.initializeFilters();
     this.authorBloomFilter = new BloomFilter(1000, 3);
     this.xorFilter = new XORFilter([]);
@@ -391,18 +390,19 @@ class FilterManager {
       return;
     }
     const posts = this.postParser.getPostElements();
-    const longPosts = posts.filter((post) =>
-      post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
+    const longPosts = posts.filter(
+      (post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
     );
     for (const post of longPosts) {
       const { content, postTable, id } = post;
       const simHash = await SimHashUtil.simhash(content);
-      const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
-        return (
-          SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
-          this.filterManager.config.MAX_HAMMING_DISTANCE
+      const isSpam = this.filterManager.lruCache
+        .getKeys()
+        .some(
+          (cachedSimHash) =>
+            SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
+            this.filterManager.config.MAX_HAMMING_DISTANCE
         );
-      });
       if (isSpam) {
         console.log(`Filtering spam post with ID: ${id}`);
         const spoiler = this.createSpoiler(content);
@@ -418,7 +418,6 @@ class FilterManager {
       }
     }
   }
-
   collectAndCheckSignature(signature) {
     this.collectedSignatures.push(signature);
     if (this.collectedSignatures.length >= this.signatureThreshold) {
@@ -427,21 +426,43 @@ class FilterManager {
     }
   }
 }
-
+// Boyer-Moore implementation with bad character heuristic
+function buildBadCharTable(pattern) {
+  const table = {};
+  for (let i = 0; i < pattern.length - 1; i++) {
+    table[pattern.charAt(i)] = pattern.length - 1 - i;
+  }
+  return table;
+}
+function boyerMoore(text, pattern) {
+  const badCharTable = buildBadCharTable(pattern);
+  const n = text.length;
+  const m = pattern.length;
+  let skip = 0;
+  while (skip <= n - m) {
+    let j = m - 1;
+    while (j >= 0 && text.charAt(skip + j) === pattern.charAt(j)) {
+      j--;
+    }
+    if (j < 0) {
+      return skip; // Found a match
+    }
+    skip += Math.max(1, j - (badCharTable[text.charAt(skip + j)] || m));
+  }
+  return -1; // No match found
+}
 class SubstringSearch {
   constructor(config) {
     this.config = config;
     this.trie = new TrieNode();
+    this.initializeFilters();
   }
-
   initializeFilters() {
     // Initialize Trie with pre-set spam FILTERED_SUBSTRINGS
     this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
       this.trie.insert(substring);
     });
   }
-
-  // Check if the text contains any substring from the Trie using Boyer-Moore
   containsSpamSubstring(text) {
     for (const substring of this.config.FILTERED_SUBSTRINGS) {
       if (boyerMoore(text, substring) !== -1) {
@@ -499,32 +520,6 @@ class PostParser {
     });
   }
 }
-
-class SubstringSearch {
-  constructor(config) {
-    this.config = config;
-    this.trie = new TrieNode();
-    this.initializeFilters();
-  }
-
-  initializeFilters() {
-    // Initialize Trie with pre-set spam FILTERED_SUBSTRINGS
-    this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
-      this.trie.insert(substring);
-    });
-  }
-
-  // Check if the text contains any substring from the Trie using Boyer-Moore
-  containsSpamSubstring(text) {
-    for (const substring of this.config.FILTERED_SUBSTRINGS) {
-      if (boyerMoore(text, substring) !== -1) {
-        return true;
-      }
-    }
-    return false;
-  }
-}
-
 class ContentFilter {
   constructor() {
     this.configManager = new ConfigurationManager();
@@ -578,13 +573,15 @@ class ContentFilter {
       }
     }
   }
-
   filterPostsByAuthor() {
     console.log('Running filterPostsByAuthor...');
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { author, postTable, id } = post;
-      if (this.filterManager.authorBloomFilter.test(author) && this.filterManager.authorTrie.search(author)) {
+      if (
+        this.filterManager.authorBloomFilter.test(author) &&
+        this.filterManager.authorTrie.search(author)
+      ) {
         console.log(`Filtering post with ID: ${id} by author: ${author}`);
         const spoiler = this.createSpoiler('This post is hidden due to the author filter.');
         const contentElement = postTable.querySelector(`table font a[href="#${id}"]`);
