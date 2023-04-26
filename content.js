@@ -370,29 +370,23 @@ class ConfigurationManager {
     });
   }
 }
-
 class FilterManager {
   constructor(config) {
     this.config = config;
     this.substringTrie = new TrieNode();
-    this.authorTrie = new TrieNode(); // Initialize a Trie to store blocked authors
+    this.authorTrie = new TrieNode();
     this.bloomFilter = new BloomFilter(10000, 5);
     this.xorFilter = null;
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
     this.initializeFilters();
   }
+
   async initializeFilters() {
     if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
-      const filteredHashes = await Promise.allSettled(
-        this.config.FILTERED_SUBSTRINGS.map(async (substring) => {
-          return await workerManager.computeSHA1(substring);
-        })
-      );
-      // Use only the fulfilled promises to create the XOR filter
-      const fulfilledHashes = filteredHashes
-        .filter((result) => result.status === 'fulfilled')
-        .map((result) => result.value);
-      this.xorFilter = new XORFilter(fulfilledHashes);
+      const filteredHashes = await Promise.all(
+        this.config.FILTERED_SUBSTRINGS.map((substring) => workerManager.computeSHA1(substring))
+      ).then((results) => results.map((result) => result.value));
+      this.xorFilter = new XORFilter(filteredHashes);
       this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
         this.substringTrie.insert(substring);
         this.bloomFilter.add(substring);
@@ -401,6 +395,7 @@ class FilterManager {
     } else {
       console.error('config.FILTERED_SUBSTRINGS is not defined or not an array');
     }
+
     if (Array.isArray(this.config.USER_HIDDEN_AUTHORS)) {
       this.config.USER_HIDDEN_AUTHORS.forEach((author) => {
         this.authorTrie.insert(author);
@@ -410,24 +405,25 @@ class FilterManager {
 }
 
 class PostParser {
-  constructor() { }
   isAllWhitespace(text) {
     return /^\s*$/.test(text);
   }
+
   extractText(input) {
     const regex = /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
     return input.replace(regex, '').replace(/^\)/, '').trim();
   }
-  extractResponses(parent, parentResponse = null, visitedNodes = new Set()) {
+
+  extractResponses(parent, parentResponseId = null, visitedNodes = new Set()) {
     const responseEntries = [];
     parent.querySelectorAll('a[href^="#"]').forEach((anchor) => {
       const responseId = anchor.getAttribute('href').slice(1);
-      const content = anchor.textContent.trim();
       if (responseId === 'top' || visitedNodes.has(responseId)) {
         return;
       }
       visitedNodes.add(responseId);
-      const responseEntry = { responseNumber: responseId, content, parentResponse };
+      const content = this.extractText(anchor.textContent.trim());
+      const responseEntry = { responseNumber: responseId, content, parentResponse: parentResponseId };
       responseEntries.push(responseEntry);
       const nextTable = anchor.nextElementSibling;
       if (nextTable && nextTable.tagName === 'TABLE') {
@@ -436,128 +432,112 @@ class PostParser {
     });
     return responseEntries;
   }
+
   extractHierarchicalStructure() {
-    const pageContent = document.documentElement.innerHTML;
-    const parser = new DOMParser();
-    const parsedDoc = parser.parseFromString(pageContent, 'text/html');
-    return this.extractResponses(parsedDoc.body);
+    return this.extractResponses(document.body);
   }
-  getPostElements() { 
+
+  getPostElements() {
     const messageTables = document.querySelectorAll("table[width='700']");
-    const posts = [...messageTables].filter((table) => !table.hasAttribute("cellspacing")).map((table) => {
-      // Locate the <b> elements in the table
-      const bElements = table.querySelectorAll("b");
-      // Find the "Author:" element and extract the author
-      const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
-      const author = authorElement ? authorElement.nextSibling.textContent.trim() : null;
-      // Find the "Date:" element and extract the date
-      const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
-      const dateStr = dateElement ? dateElement.nextSibling.textContent.trim() : null;
-      // Extract the post content
-      const bodyElement = table.querySelector("table font");
-      const bodyStrings = [];
-      let authorDetected = false;
-      for (const child of bodyElement.childNodes) {
-        const textContent = child.textContent.trim();
-        if (textContent.startsWith("Author:")) {
-          authorDetected = true;
-          continue;
-        }
-        if (authorDetected && !this.isAllWhitespace(textContent)) {
-          bodyStrings.push(this.extractText(textContent));
-        }
-      }
-      const content = bodyStrings.join("");
-      const id = table.querySelector("a[name]")?.getAttribute("name");
-      if (!author || !dateStr || !content) {
-        return null;
-      }
-      return { date: dateStr, author, content, id, postTable: table };
-    }).filter(Boolean);
-    return posts;
-  }
+    return Array.from(messageTables)
+      .filter((table) => !table.hasAttribute("cellspacing"))
+      .flatMap((table) => {
+        const bElements = table.querySelectorAll("b");
+        const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
+        const author = authorElement?.nextSibling.textContent.trim();
+        const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
+        const dateStr = dateElement?.nextSibling.textContent.trim();
+        const contentElement = table.querySelector("font > a[href^='#']");
+        const content = contentElement?.textContent.trim();
+        const id = contentElement?.getAttribute("href").slice(1);
+        return author && dateStr && content && id
+        ? [{ date: dateStr, author, content, id, postTable: table }]
+        : [];
+    });
+}
 }
 
 class ContentFilter {
-  constructor() {
-    this.configManager = new ConfigurationManager();
-    this.postParser = new PostParser();
-    this.configManager.loadConfig().then((config) => {
-      this.filterManager = new FilterManager(config);
-      this.filterPostsBySubstrings();
-      this.filterSpamPostsBySimHash();
-    });
-  }
+constructor() {
+  this.configManager = new ConfigurationManager();
+  this.postParser = new PostParser();
+  this.configManager.loadConfig().then((config) => {
+    this.filterManager = new FilterManager(config);
+    this.filterPostsBySubstrings();
+    this.filterSpamPostsBySimHash();
+  });
+}
 
-  createSpoiler(content) {
-    const spoiler = document.createElement('div');
-    spoiler.classList.add('spoiler');
-    const spoilerButton = document.createElement('span');
-    spoilerButton.classList.add('spoiler-button');
-    spoilerButton.textContent = 'Click to reveal';
-    spoiler.appendChild(spoilerButton);
-    const spoilerContent = document.createElement('span');
-    spoilerContent.classList.add('spoiler-content');
-    spoilerContent.textContent = content;
-    spoiler.appendChild(spoilerContent);
-    spoilerContent.style.display = 'none';
-    return spoiler;
-  }
+createSpoiler(content) {
+  const spoiler = document.createElement('div');
+  spoiler.classList.add('spoiler');
+  const spoilerButton = document.createElement('span');
+  spoilerButton.classList.add('spoiler-button');
+  spoilerButton.textContent = 'Click to reveal';
+  spoiler.appendChild(spoilerButton);
+  const spoilerContent = document.createElement('span');
+  spoilerContent.classList.add('spoiler-content');
+  spoilerContent.textContent = content;
+  spoiler.appendChild(spoilerContent);
+  spoilerContent.style.display = 'none';
+  return spoiler;
+}
 
-  filterPostsBySubstrings() {
-    const posts = this.postParser.getPostElements();
-    for (const post of posts) {
-      const { content, postTable, id } = post;
-      // Use XOR filter to check whether the post contains a filtered substring
-      if (
-        this.filterManager &&
-        this.filterManager.bloomFilter &&
-        this.filterManager.bloomFilter.test(content) &&
-        this.filterManager.xorFilter.mayContain(content) &&
-        this.filterManager.substringTrie.search(content)
-      ) {
-        const spoiler = this.createSpoiler(content);
-        const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
-        if (contentElement) {
-          postTable.replaceChild(spoiler, contentElement);
-        } else {
-          console.warn(`Failed to replace content for post with ID: ${id}`);
-        }
-      }
-    }
-  }
-  
-  async filterSpamPostsBySimHash() {
-    if (!this.filterManager) {
-      return;
-    }
-    const posts = this.postParser.getPostElements();
-    const longPosts = posts.filter(
-      (post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
-    );
-    for (const post of longPosts) {
-      const { content, postTable, id } = post;
-      const simHash = await SimHashUtil.simhash(content);
-      // Use LRU cache to check for similarity with recent posts
-      const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
-        return (
-          SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
-          this.filterManager.config.MAX_HAMMING_DISTANCE
-        );
-      });
-      if (isSpam) {
-        const spoiler = this.createSpoiler(content);
-        const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
-        if (contentElement) {
-          postTable.replaceChild(spoiler, contentElement);
-        } else {
-          console.warn(`Failed to replace content for post with ID: ${id}`);
-        }
+filterPostsBySubstrings() {
+  const hierarchicalStructure = this.postParser.extractHierarchicalStructure();
+  const processPost = (post) => {
+    const { content, responseNumber } = post;
+    if (
+      this.filterManager &&
+      this.filterManager.bloomFilter &&
+      this.filterManager.bloomFilter.test(content) &&
+      this.filterManager.xorFilter.mayContain(content) &&
+      this.filterManager.substringTrie.search(content)
+    ) {
+      const spoiler = this.createSpoiler(content);
+      const postTable = document.querySelector(`table font a[name="${responseNumber}"]`);
+      const contentElement = postTable?.parentNode?.parentNode?.parentNode?.parentNode;
+      if (contentElement) {
+        contentElement.replaceChild(spoiler, postTable);
       } else {
-        this.filterManager.lruCache.put(simHash, true);
+        console.warn(`Failed to replace content for post with ID: ${responseNumber}`);
       }
     }
+    post.sub_responses?.forEach(processPost);
+  };
+  hierarchicalStructure.forEach(processPost);
+}
+
+async filterSpamPostsBySimHash() {
+  if (!this.filterManager) {
+    return;
   }
+  const posts = this.postParser.getPostElements();
+  const longPosts = posts.filter(
+    (post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
+  );
+  for (const post of longPosts) {
+    const { content, postTable, id } = post;
+    const simHash = await SimHashUtil.simhash(content);
+    const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
+      return (
+        SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
+        this.filterManager.config.MAX_HAMMING_DISTANCE
+      );
+    });
+    if (isSpam) {
+      const spoiler = this.createSpoiler(content);
+      const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
+      if (contentElement) {
+        postTable.replaceChild(spoiler, contentElement);
+      } else {
+        console.warn(`Failed to replace content for post with ID: ${id}`);
+      }
+    } else {
+      this.filterManager.lruCache.put(simHash, true);
+    }
+  }
+}
 }
 
 // Instantiate ContentFilter and filter the thread
