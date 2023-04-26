@@ -374,7 +374,6 @@ class FilterManager {
   constructor(config) {
     this.config = config;
     this.substringTrie = new TrieNode();
-    this.authorTrie = new TrieNode();
     this.bloomFilter = new BloomFilter(10000, 5);
     this.xorFilter = null;
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
@@ -382,25 +381,22 @@ class FilterManager {
   }
 
   async initializeFilters() {
-    if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
-      const filteredHashes = await Promise.all(
-        this.config.FILTERED_SUBSTRINGS.map((substring) => SimHashUtil.createSHA1Hash(substring))
-      ).then((results) => results.map((result) => result.value));
-      this.xorFilter = new XORFilter(filteredHashes);
-      this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
-        this.substringTrie.insert(substring);
-        this.bloomFilter.add(substring);
-      });
-      console.log('Loaded FILTERED_SUBSTRINGS:', this.config.FILTERED_SUBSTRINGS);
-    } else {
-      console.error('config.FILTERED_SUBSTRINGS is not defined or not an array');
-    }
+    // Precomputed SHA1 values of default substrings (replace precomputedSha1Values with actual values)
+    const precomputedSha1Values = [
+      '6424c50f0cf5841e9a91be21bb61092b1c9a6483',
+      'b7f63ff1554983650708b1e03d0abc63af46ea13',
+      '6d4b69a16932db410bda5184c492bd896d372cf7',
+      '33ed8405db07a8adc75680d1ab6e234b6370ba7d',
+      'c9153ebe82d10185eff52679039ba1319112757a',
+    ];
 
-    if (Array.isArray(this.config.USER_HIDDEN_AUTHORS)) {
-      this.config.USER_HIDDEN_AUTHORS.forEach((author) => {
-        this.authorTrie.insert(author);
-      });
-    }
+    const filteredHashes = precomputedSha1Values;
+    this.xorFilter = new XORFilter(filteredHashes);
+    this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
+      this.substringTrie.insert(substring);
+      this.bloomFilter.add(substring);
+    });
+    console.log('Loaded FILTERED_SUBSTRINGS:', this.config.FILTERED_SUBSTRINGS);
   }
 }
 
@@ -472,22 +468,31 @@ class ContentFilter {
   }
 
   createSpoiler(content) {
-    // (existing code)
+    const spoiler = document.createElement('div');
+    spoiler.classList.add('spoiler');
+    const spoilerButton = document.createElement('span');
+    spoilerButton.classList.add('spoiler-button');
+    spoilerButton.textContent = 'Click to reveal';
+    spoiler.appendChild(spoilerButton);
+    const spoilerContent = document.createElement('span');
+    spoilerContent.classList.add('spoiler-content');
+    spoilerContent.textContent = content;
+    spoiler.appendChild(spoilerContent);
+    spoilerContent.style.display = 'none';
+    return spoiler;
   }
 
   filterPostsBySubstrings() {
-    console.log('Running filterPostsBySubstrings...');  // Logging
+    console.log('Running filterPostsBySubstrings...');
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { content, postTable, id } = post;
-      // Use XOR filter to check whether the post contains a filtered substring
+      // Use Trie filter to check whether the post contains a filtered substring
       if (
         this.filterManager &&
-        this.filterManager.bloomFilter &&
-        this.filterManager.bloomFilter.test(content) &&
-        this.filterManager.xorFilter.mayContain(content)
+        this.filterManager.substringTrie.search(content)
       ) {
-        console.log(`Filtering post with ID: ${id}`);  // Logging
+        console.log(`Filtering post with ID: ${id}`);
         const spoiler = this.createSpoiler(content);
         const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
         if (contentElement) {
