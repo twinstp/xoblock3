@@ -384,7 +384,7 @@ class FilterManager {
   async initializeFilters() {
     if (Array.isArray(this.config.FILTERED_SUBSTRINGS)) {
       const filteredHashes = await Promise.all(
-        this.config.FILTERED_SUBSTRINGS.map((substring) => workerManager.computeSHA1(substring))
+        this.config.FILTERED_SUBSTRINGS.map((substring) => SimHashUtil.createSHA1Hash(substring))
       ).then((results) => results.map((result) => result.value));
       this.xorFilter = new XORFilter(filteredHashes);
       this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
