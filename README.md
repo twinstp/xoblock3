@@ -1,34 +1,29 @@
-The former code at https://github.com/xoxo-extensions/nullo-killer/blob/main/content.js provided a solution to filter out spam posts on an Altair-style "web 1.0" text-based forum. Specifically, it targeted spam posts that consisted of repetitively pasted long posts that were difficult for users to scroll past. The approach used by the former code involved defining a list of known spam substrings (nulloSubstrings) and checking each post on the forum to see if it contained any of these substrings. If a post contained a substring from the list, it was hidden from the view of users. The code also included utility functions like isAllWhitespace and extractText to assist in processing the post text.
+README.md
+Overview
+The purpose of this program is to provide a content filtering solution for an online forum, specifically aimed at reducing spam and unwanted content. The filtering system comprises a browser extension that employs a combination of techniques such as substring matching, author-based filtering, and SimHash-based similarity detection to identify and filter out undesired posts.
 
-The new code provided in the question builds upon this prior art by introducing data structures and algorithms that allow for more flexible and efficient filtering. The new code uses a combination of probabilistic data structures like XOR filters and Bloom filters, as well as trie-based data structures, to allow for efficient substring search and spam filtering. The new code also utilizes hashing functions and LRU cache to improve performance.
+The program consists of several classes and utilities that work together to achieve the goal of content filtering:
 
-Here's how the new code works:
+SimHashUtil: A utility class that provides methods for computing SimHash fingerprints of text content and calculating Hamming distances between SimHash fingerprints. It is used for similarity detection.
 
-Instead of relying on a fixed list of spam substrings, the new code uses XOR filters and Bloom filters to dynamically build and maintain a filter for spam detection. These probabilistic data structures allow for fast membership testing and can help identify spam posts based on defined patterns (e.g., common substrings, hashes, or features).
+ConfigurationManager: A class responsible for managing configuration settings for the content filtering system. It handles the loading and saving of configuration data, and provides default values for settings such as maximum cache size, maximum Hamming distance, and long post threshold.
 
-The XORFilter class allows the creation of an XOR filter that can be used to check if a given element may be a member of a set. This is done by initializing the filter with an array of keys (potentially extracted from spam posts) and using the mayContain method to test if a post contains any of these keys.
+FilterManager: A class that manages different filtering techniques, including substring-based filtering, author-based filtering, and SimHash-based similarity filtering. It utilizes data structures such as trie, Bloom filter, XOR filter, and LRU cache to efficiently perform filtering operations.
 
-Similarly, the BloomFilter class allows the creation of a Bloom filter for membership testing. The class provides methods to add elements to the filter and check for membership. This can be used to filter out posts with known spam content or patterns.
+PostParser: A class responsible for parsing the HTML content of forum pages and extracting relevant information about individual posts, including author, date, content, and unique ID. It also extracts the hierarchical structure of responses to posts.
 
-The TrieNode class implements a Trie data structure for efficiently storing and searching strings. This can be used to build a trie of known spam patterns or substrings and efficiently search for their presence in the posts.
+ContentFilter: A class that orchestrates the filtering process. It initializes the ConfigurationManager, PostParser, and FilterManager, and applies filtering rules to the posts based on the configuration settings. It generates spoiler elements to replace filtered content and allows users to reveal the content if desired.
 
-The LRUCache class implements a Least Recently Used (LRU) cache to store and retrieve key-value pairs. This can be used to cache search results or other intermediate data to speed up the filtering process.
+The program has a settings page that allows users to customize filtering parameters such as maximum cache size, maximum Hamming distance, long post threshold, and signature threshold. Users can also specify a list of filtered substrings and hidden authors.
 
-Utility functions like escapeRegexSpecialCharacters, fuzzyMatch, getPostElements, and others are used for various purposes such as escaping special characters, fuzzy matching for approximate string search, and extracting post elements from the forum's HTML.
+Usage
+Once installed as a browser extension, the content filtering system automatically filters posts in the online forum based on the user's configuration settings. The user can customize the filtering behavior through the extension's settings page. Filtered posts will be replaced with a spoiler element, allowing the user to reveal the content if desired.
 
-The combination of these data structures, algorithms, and utility functions allows the new code to efficiently filter out spam posts on the forum without relying on a fixed list of substrings. The new code can be adapted to handle various types of spam content, including those that do not rely on exact substring matches, and can be updated dynamically based on the evolving patterns of spam.
+Testing
+The program includes a test function, testFilterPostsBySubstrings(), which simulates filtering behavior on a set of test posts. The function is called at the end of the script to verify the behavior of the filtering system based on substring matching.
 
-Overall, the new code provides a more robust, flexible, and efficient solution to the problem of spam filtering on a text-based forum, compared to the prior art of substring-based filtering.
+Limitations
+The program is designed to work with an older online forum that uses PHP and HTML without proper IDs or CSS classes for elements. As such, the HTML parsing relies on specific attributes and structures present in the forum's HTML content.
 
-
-From a signal detection perspective, the goal of spam filtering is to accurately identify and filter out spam posts while minimizing the number of false positives (legitimate posts incorrectly classified as spam) and false negatives (spam posts not detected). To achieve this, the spam filtering solution must balance sensitivity (ability to detect true positives) and specificity (ability to reject false positives). The use of probabilistic data structures like XOR filters and Bloom filters inherently involves a trade-off between false positives and false negatives. These filters provide fast membership testing but may yield false positives, indicating that an element is a member of the set even when it is not. However, false negatives are not possible with these filters. The choice of parameters, such as the filter size, hash functions, and number of hash functions, affects this trade-off.
-
-Efficiencies in terms of operations and caching are achieved through several mechanisms:
-
-XOR filters and Bloom filters provide constant-time membership testing regardless of the size of the set. This allows for quick detection of spam posts based on predefined patterns.
-
-A trie-based data structure enables efficient substring search by eliminating the need to search for substrings in the entire text of each post. The trie allows for prefix-based search, which is more efficient than a linear search for substrings.
-
-The use of an LRU cache allows for caching of intermediate data and search results. This reduces the need for repeated computations, especially for frequently occurring patterns or substrings.
-
-The use of hashing functions such as SHA-1 provides a compact representation of data, allowing for efficient comparison and lookup.
+Contributing
+Contributions and improvements to the code are welcome. Please follow the standard coding conventions and submit a pull request for review.

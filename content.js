@@ -1,4 +1,3 @@
-// deno-lint-ignore-file
 'use strict';
 // ## DATA STRUCTURES ##
 class XORFilter {
@@ -264,7 +263,7 @@ class SimHashUtil {
     }
     return hash;
   }
-  // Helper function to count the number of set bits in a given number
+  
   static countSetBits(num) {
     let count = 0;
     while (num) {
@@ -273,7 +272,7 @@ class SimHashUtil {
     }
     return count;
   }
-
+  
   static hammingDistance(hash1, hash2) {
     if (hash1.length !== hash2.length) {
       throw new Error("The lengths of hash1 and hash2 must be equal.");
@@ -284,10 +283,8 @@ class SimHashUtil {
     }
     return distance;
   }
-
 }
 
-// Usage example
 (async () => {
   const hash1 = await SimHashUtil.simhash("Hello, World!");
   const hash2 = await SimHashUtil.simhash("Hello, World?");
@@ -295,7 +292,6 @@ class SimHashUtil {
   console.log(distance);
 })();
 
-// Constants for default values
 const DEFAULT_MAX_CACHE_SIZE = 1000;
 const DEFAULT_MAX_HAMMING_DISTANCE = 5;
 const DEFAULT_LONG_POST_THRESHOLD = 25;
@@ -310,6 +306,7 @@ class ConfigurationManager {
       this.config = config;
     });
   }
+
   getInitialConfig() {
     return {
       MAX_CACHE_SIZE: DEFAULT_MAX_CACHE_SIZE,
@@ -323,8 +320,10 @@ class ConfigurationManager {
         'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
       ],
       USER_HIDDEN_AUTHORS: [],
+      SIGNATURE_THRESHOLD: 100,
     };
   }
+
   async loadConfig() {
     console.log('Loading config...');
     return new Promise((resolve, reject) => {
@@ -338,12 +337,14 @@ class ConfigurationManager {
       });
     });
   }
+
   saveConfig(newConfig) {
     chrome.storage.local.set({ config: newConfig }, () => {
       console.log('Configuration updated:', newConfig);
       alert('Configuration saved successfully.');
     });
   }
+
   setupDOMBindings() {
     document.addEventListener('DOMContentLoaded', () => {
       const config = this.config;
@@ -352,16 +353,19 @@ class ConfigurationManager {
       document.getElementById('long-post-threshold').value = config.LONG_POST_THRESHOLD;
       document.getElementById('filtered-substrings').value = config.FILTERED_SUBSTRINGS.join('\n');
       document.getElementById('hidden-authors').value = config.USER_HIDDEN_AUTHORS.join('\n');
+      document.getElementById('signature-threshold').value = config.SIGNATURE_THRESHOLD;
       document.getElementById('save-config').addEventListener('click', () => {
-        const maxCacheSize = parseInt(document.getElementById('max-cache-size').value,         10);
+        const maxCacheSize = parseInt(document.getElementById('max-cache-size').value, 10);
         const maxHammingDistance = parseInt(document.getElementById('max-hamming-distance').value, 10);
         const longPostThreshold = parseInt(document.getElementById('long-post-threshold').value, 10);
+        const signatureThreshold = parseInt(document.getElementById('signature-threshold').value, 10);
         const filteredSubstrings = document.getElementById('filtered-substrings').value.split('\n').map((s) => s.trim());
         const userHiddenAuthors = document.getElementById('hidden-authors').value.split('\n').map((s) => s.trim());
         const newConfig = {
           MAX_CACHE_SIZE: maxCacheSize,
           MAX_HAMMING_DISTANCE: maxHammingDistance,
           LONG_POST_THRESHOLD: longPostThreshold,
+          SIGNATURE_THRESHOLD: signatureThreshold,
           FILTERED_SUBSTRINGS: filteredSubstrings,
           USER_HIDDEN_AUTHORS: userHiddenAuthors,
         };
@@ -370,33 +374,64 @@ class ConfigurationManager {
     });
   }
 }
+
 class FilterManager {
   constructor(config) {
     this.config = config;
     this.substringTrie = new TrieNode();
+    this.authorTrie = new TrieNode();
     this.bloomFilter = new BloomFilter(10000, 5);
+    this.authorBloomFilter = new BloomFilter(1000, 3);
     this.xorFilter = null;
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
+    this.collectedSignatures = [];
+    this.signatureThreshold = config.SIGNATURE_THRESHOLD || 100;
     this.initializeFilters();
   }
 
   async initializeFilters() {
-    // Precomputed SHA1 values of default substrings (replace precomputedSha1Values with actual values)
-    const precomputedSha1Values = [
-      '6424c50f0cf5841e9a91be21bb61092b1c9a6483',
-      'b7f63ff1554983650708b1e03d0abc63af46ea13',
-      '6d4b69a16932db410bda5184c492bd896d372cf7',
-      '33ed8405db07a8adc75680d1ab6e234b6370ba7d',
-      'c9153ebe82d10185eff52679039ba1319112757a',
-    ];
-
-    const filteredHashes = precomputedSha1Values;
-    this.xorFilter = new XORFilter(filteredHashes);
     this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
       this.substringTrie.insert(substring);
       this.bloomFilter.add(substring);
     });
-    console.log('Loaded FILTERED_SUBSTRINGS:', this.config.FILTERED_SUBSTRINGS);
+    this.xorFilter = new XORFilter([]);
+  }
+
+  async filterSpamPostsBySimHash() {
+    console.log('Running filterSpamPostsBySimHash...');
+    if (!this.filterManager) {
+      return;
+    }
+    const posts = this.postParser.getPostElements();
+    const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
+    for (const post of longPosts) {
+      const { content, postTable, id } = post;
+      const simHash = await SimHashUtil.simhash(content);
+      const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
+        return (SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE);
+      });
+      if (isSpam) {
+        console.log(`Filtering spam post with ID: ${id}`);
+        const spoiler = this.createSpoiler(content);
+        const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
+        if (contentElement) {
+          postTable.replaceChild(spoiler, contentElement);
+        } else {
+          console.warn(`Failed to replace content for post with ID: ${id}`);
+        }
+        this.collectAndCheckSignature(simHash);
+      } else {
+        this.filterManager.lruCache.put(simHash, true);
+      }
+    }
+  }
+
+  collectAndCheckSignature(signature) {
+    this.collectedSignatures.push(signature);
+    if (this.collectedSignatures.length >= this.signatureThreshold) {
+      this.xorFilter = new XORFilter(this.collectedSignatures);
+      this.collectedSignatures = [];
+    }
   }
 }
 
@@ -446,11 +481,9 @@ class PostParser {
         const contentElement = table.querySelector("font > a[href^='#']");
         const content = contentElement?.textContent.trim();
         const id = contentElement?.getAttribute("href").slice(1);
-        return author && dateStr && content && id
-        ? [{ date: dateStr, author, content, id, postTable: table }]
-        : [];
-    });
-}
+        return author && dateStr && content && id ? [{ date: dateStr, author, content, id, postTable: table }] : [];
+      });
+  }
 }
 
 class ContentFilter {
@@ -460,7 +493,7 @@ class ContentFilter {
     this.configManager.loadConfig().then((config) => {
       this.filterManager = new FilterManager(config);
       this.filterPostsBySubstrings();
-      // Add a delay before running the more intensive filter
+      this.filterPostsByAuthor();
       setTimeout(() => {
         this.filterSpamPostsBySimHash();
       }, 1000);
@@ -487,14 +520,28 @@ class ContentFilter {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { content, postTable, id } = post;
-      // Use Trie filter to check whether the post contains a filtered substring
-      if (
-        this.filterManager &&
-        this.filterManager.substringTrie.search(content)
-      ) {
+      if (this.filterManager && this.filterManager.bloomFilter && this.filterManager.bloomFilter.test(content) && this.filterManager.substringTrie.search(content)) {
         console.log(`Filtering post with ID: ${id}`);
         const spoiler = this.createSpoiler(content);
-        const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
+        const contentElement = postTable.querySelector(`table font a[href="#${id}"]`);
+        if (contentElement) {
+          postTable.replaceChild(spoiler, contentElement);
+        } else {
+          console.warn(`Failed to replace content for post with ID: ${id}`);
+        }
+      }
+    }
+  }
+
+  filterPostsByAuthor() {
+    console.log('Running filterPostsByAuthor...');
+    const posts = this.postParser.getPostElements();
+    for (const post of posts) {
+      const { author, postTable, id } = post;
+      if (this.filterManager && this.filterManager.authorBloomFilter && this.filterManager.authorBloomFilter.test(author) && this.filterManager.authorTrie.search(author)) {
+        console.log(`Filtering post with ID: ${id} by author: ${author}`);
+        const spoiler = this.createSpoiler('This post is hidden due to the author filter.');
+        const contentElement = postTable.querySelector(`table font a[href="#${id}"]`);
         if (contentElement) {
           postTable.replaceChild(spoiler, contentElement);
         } else {
@@ -505,26 +552,21 @@ class ContentFilter {
   }
 
   async filterSpamPostsBySimHash() {
-    console.log('Running filterSpamPostsBySimHash...');  // Logging
+    console.log('Running filterSpamPostsBySimHash...');
     if (!this.filterManager) {
       return;
     }
+  
     const posts = this.postParser.getPostElements();
-    const longPosts = posts.filter(
-      (post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
-    );
+    const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
     for (const post of longPosts) {
       const { content, postTable, id } = post;
       const simHash = await SimHashUtil.simhash(content);
-      // Use LRU cache to check for similarity with recent posts
       const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
-        return (
-          SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
-          this.filterManager.config.MAX_HAMMING_DISTANCE
-        );
+        return (SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE);
       });
       if (isSpam) {
-        console.log(`Filtering spam post with ID: ${id}`);  // Logging
+        console.log(`Filtering spam post with ID: ${id}`);
         const spoiler = this.createSpoiler(content);
         const contentElement = postTable.querySelector(`table font a[name="${id}"]`);
         if (contentElement) {
@@ -537,7 +579,17 @@ class ContentFilter {
       }
     }
   }
+  
+const contentFilter = new ContentFilter();
+
+function testFilterPostsBySubstrings() {
+  const testPosts = [
+    { content: 'This is a test post with modification, and he recently agreed to answer our questions.', postTable: {}, id: '123' },
+    { content: 'Another post without filtered substring.', postTable: {}, id: '456' },
+    { content: 'This post contains legal efforts to overturn the 2020 election.', postTable: {}, id: '789' },
+  ];
+  contentFilter.postParser.getPostElements = () => testPosts;
+  contentFilter.filterPostsBySubstrings();
 }
 
-// Instantiate ContentFilter and filter the thread
-const contentFilter = new ContentFilter();
+testFilterPostsBySubstrings();
