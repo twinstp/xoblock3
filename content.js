@@ -579,7 +579,7 @@ class ContentFilter {
       }
     }
   }
-  
+}
 const contentFilter = new ContentFilter();
 
 function testFilterPostsBySubstrings() {
