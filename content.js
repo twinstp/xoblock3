@@ -1,4 +1,3 @@
-'use strict';
 // ## DATA STRUCTURES ##
 class XORFilter {
   constructor(keys, seed = 123456789) {
