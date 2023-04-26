@@ -1,8 +1,38 @@
-// Minified settings.html with the added input field for signatureThreshold
-<!doctype html><title>Extension Settings</title><h1>Extension Settings</h1><div><label for=max-cache-size>Max Cache Size:</label>
-<input type=number id=max-cache-size name=max-cache-size></div><div><label for=max-hamming-distance>Max Hamming Distance:</label>
-<input type=number id=max-hamming-distance name=max-hamming-distance></div><div><label for=long-post-threshold>Long Post Threshold:</label>
-<input type=number id=long-post-threshold name=long-post-threshold></div><div><label for=filtered-substrings>Filtered Substrings:</label>
-<textarea id=filtered-substrings name=filtered-substrings rows=5></textarea></div><div><label for=hidden-authors>Hidden Authors:</label>
-<textarea id=hidden-authors name=hidden-authors rows=5></textarea></div><div><label for=signature-threshold>Signature Threshold:</label>
-<input type=number id=signature-threshold name=signature-threshold></div><div><button id=save-config>Save Configuration</button></div><script src=settings.js></script>
+<!-- settings.html -->
+<!doctype html>
+<html>
+<head>
+  <title>Extension Settings</title>
+</head>
+<body>
+  <h1>Extension Settings</h1>
+  <div>
+    <label for="max-cache-size">Max Cache Size:</label>
+    <input type="number" id="max-cache-size" name="max-cache-size">
+  </div>
+  <div>
+    <label for="max-hamming-distance">Max Hamming Distance:</label>
+    <input type="number" id="max-hamming-distance" name="max-hamming-distance">
+  </div>
+  <div>
+    <label for="long-post-threshold">Long Post Threshold:</label>
+    <input type="number" id="long-post-threshold" name="long-post-threshold">
+  </div>
+  <div>
+    <label for="filtered-substrings">Filtered Substrings:</label>
+    <textarea id="filtered-substrings" name="filtered-substrings" rows="5"></textarea>
+  </div>
+  <div>
+    <label for="hidden-authors">Hidden Authors:</label>
+    <textarea id="hidden-authors" name="hidden-authors" rows="5"></textarea>
+  </div>
+  <div>
+    <label for="signature-threshold">Signature Threshold:</label>
+    <input type="number" id="signature-threshold" name="signature-threshold">
+  </div>
+  <div>
+    <button id="save-config">Save Configuration</button>
+  </div>
+  <script src="settings.js"></script>
+</body>
+</html>

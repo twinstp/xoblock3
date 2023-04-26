@@ -1,10 +1,17 @@
+/* popup.css */
 body {
-    background-color: #222;
-    color: #eee;
-    width: 16rem;
-    height: 4rem;
-  }
-  .special-text {
-    color: red;
-  }
-  
+  background-color: #222;
+  color: #eee;
+  width: 16rem;
+  height: 4rem;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.special-text {
+  color: red;
+  font-weight: bold;
+}

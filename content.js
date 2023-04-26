@@ -17,8 +17,8 @@ class XORFilter {
     return Math.floor(offset + (factorTimes100 * size) / 100);
   }
 
-  hash(key, seed, index) {
-    const r = ((key + seed) << (21 * index)) >>> 0;
+  hash(key, index) {
+    const r = ((key + this.seed) << (21 * index)) >>> 0;
     return (r % this.blockLength) + index * this.blockLength;
   }
 
@@ -29,6 +29,7 @@ class XORFilter {
   initialize(keys) {
     const t2count = new Uint8Array(this.arrayLength);
     const t2 = new Uint32Array(this.arrayLength);
+
     keys.forEach((key) => {
       for (let hi = 0; hi < this.hashes; hi++) {
         const h = this.hash(key, this.seed, hi);
@@ -109,21 +110,16 @@ class BloomFilter {
     this.seed = 12345;
   }
 
-  add(element) {
-    for (let i = 0; i < this.numHashes; i++) {
-      const hashIdx = this.hash(element, i);
-      this.bits[hashIdx >> 5] |= 1 << (hashIdx & 31);
-    }
-  }
-
-  test(element) {
+  checkAndAdd(element) {
+    let exists = true;
     for (let i = 0; i < this.numHashes; i++) {
       const hashIdx = this.hash(element, i);
       if ((this.bits[hashIdx >> 5] & (1 << (hashIdx & 31))) === 0) {
-        return false;
+        exists = false;
       }
+      this.bits[hashIdx >> 5] |= 1 << (hashIdx & 31);
     }
-    return true;
+    return exists;
   }
 
   hash(element, hashIndex) {
@@ -200,12 +196,7 @@ class LRUCache {
   removeFromTail() {
     this.removeFromList(this.tail.prev);
   }
-
-  getKeys() {
-    return Array.from(this.cache.keys());
-  }
 }
-
 class TrieNode {
   constructor() {
     this.children = new Map();
@@ -308,9 +299,10 @@ class ConfigurationManager {
 
   getInitialConfig() {
     return {
-      MAX_CACHE_SIZE: DEFAULT_MAX_CACHE_SIZE,
-      MAX_HAMMING_DISTANCE: DEFAULT_MAX_HAMMING_DISTANCE,
-      LONG_POST_THRESHOLD: DEFAULT_LONG_POST_THRESHOLD,
+      MAX_CACHE_SIZE: 1000,
+      MAX_HAMMING_DISTANCE: 5,
+      LONG_POST_THRESHOLD: 25,
+      SIGNATURE_THRESHOLD: 100,
       FILTERED_SUBSTRINGS: [
         'modification, and he recently agreed to answer our questions',
         'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
@@ -319,7 +311,6 @@ class ConfigurationManager {
         'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
       ],
       USER_HIDDEN_AUTHORS: [],
-      SIGNATURE_THRESHOLD: 100,
     };
   }
 
@@ -377,22 +368,20 @@ class ConfigurationManager {
 class FilterManager {
   constructor(config) {
     this.config = config;
-    this.substringTrie = new TrieNode();
+    this.substringSearch = new SubstringSearch(config);
     this.authorTrie = new TrieNode();
-    this.bloomFilter = new BloomFilter(10000, 5);
     this.authorBloomFilter = new BloomFilter(1000, 3);
-    this.xorFilter = null;
     this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
+    this.xorFilter = null;
     this.collectedSignatures = [];
     this.signatureThreshold = config.SIGNATURE_THRESHOLD || 100;
     this.initializeFilters();
   }
 
   async initializeFilters() {
-    this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
-      this.substringTrie.insert(substring);
-      this.bloomFilter.add(substring);
-    });
+    // Initialize the SubstringSearch with pre-set spam FILTERED_SUBSTRINGS
+    this.substringSearch.initializeFilters();
+    this.authorBloomFilter = new BloomFilter(1000, 3);
     this.xorFilter = new XORFilter([]);
   }
 
@@ -402,12 +391,17 @@ class FilterManager {
       return;
     }
     const posts = this.postParser.getPostElements();
-    const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
+    const longPosts = posts.filter((post) =>
+      post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
+    );
     for (const post of longPosts) {
       const { content, postTable, id } = post;
       const simHash = await SimHashUtil.simhash(content);
       const isSpam = this.filterManager.lruCache.getKeys().some((cachedSimHash) => {
-        return (SimHashUtil.hammingDistance(simHash, cachedSimHash) <= this.filterManager.config.MAX_HAMMING_DISTANCE);
+        return (
+          SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
+          this.filterManager.config.MAX_HAMMING_DISTANCE
+        );
       });
       if (isSpam) {
         console.log(`Filtering spam post with ID: ${id}`);
@@ -434,6 +428,29 @@ class FilterManager {
   }
 }
 
+class SubstringSearch {
+  constructor(config) {
+    this.config = config;
+    this.trie = new TrieNode();
+  }
+
+  initializeFilters() {
+    // Initialize Trie with pre-set spam FILTERED_SUBSTRINGS
+    this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
+      this.trie.insert(substring);
+    });
+  }
+
+  // Check if the text contains any substring from the Trie using Boyer-Moore
+  containsSpamSubstring(text) {
+    for (const substring of this.config.FILTERED_SUBSTRINGS) {
+      if (boyerMoore(text, substring) !== -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
 class PostParser {
   isAllWhitespace(text) {
     return /^\s*$/.test(text);
@@ -469,19 +486,42 @@ class PostParser {
 
   getPostElements() {
     const messageTables = document.querySelectorAll("table[width='700']");
-    return Array.from(messageTables)
-      .filter((table) => !table.hasAttribute("cellspacing"))
-      .flatMap((table) => {
-        const bElements = table.querySelectorAll("b");
-        const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
-        const author = authorElement?.nextSibling.textContent.trim();
-        const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
-        const dateStr = dateElement?.nextSibling.textContent.trim();
-        const contentElement = table.querySelector("font > a[href^='#']");
-        const content = contentElement?.textContent.trim();
-        const id = contentElement?.getAttribute("href").slice(1);
-        return author && dateStr && content && id ? [{ date: dateStr, author, content, id, postTable: table }] : [];
-      });
+    return Array.from(messageTables).filter((table) => !table.hasAttribute("cellspacing")).flatMap((table) => {
+      const bElements = table.querySelectorAll("b");
+      const authorElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Author:');
+      const author = authorElement?.nextSibling.textContent.trim();
+      const dateElement = Array.from(bElements).find((b) => b.textContent.trim() === 'Date:');
+      const dateStr = dateElement?.nextSibling.textContent.trim();
+      const contentElement = table.querySelector("font>a[href^='#']");
+      const content = contentElement?.textContent.trim();
+      const id = contentElement?.getAttribute("href").slice(1);
+      return author && dateStr && content && id ? [{ date: dateStr, author, content, id, postTable: table }] : [];
+    });
+  }
+}
+
+class SubstringSearch {
+  constructor(config) {
+    this.config = config;
+    this.trie = new TrieNode();
+    this.initializeFilters();
+  }
+
+  initializeFilters() {
+    // Initialize Trie with pre-set spam FILTERED_SUBSTRINGS
+    this.config.FILTERED_SUBSTRINGS.forEach((substring) => {
+      this.trie.insert(substring);
+    });
+  }
+
+  // Check if the text contains any substring from the Trie using Boyer-Moore
+  containsSpamSubstring(text) {
+    for (const substring of this.config.FILTERED_SUBSTRINGS) {
+      if (boyerMoore(text, substring) !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
@@ -511,6 +551,13 @@ class ContentFilter {
     spoilerContent.textContent = content;
     spoiler.appendChild(spoilerContent);
     spoilerContent.style.display = 'none';
+    spoiler.onclick = () => {
+      if (spoilerContent.style.display === 'none') {
+        spoilerContent.style.display = 'inline';
+      } else {
+        spoilerContent.style.display = 'none';
+      }
+    };
     return spoiler;
   }
 
@@ -519,7 +566,7 @@ class ContentFilter {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { content, postTable, id } = post;
-      if (this.filterManager && this.filterManager.bloomFilter && this.filterManager.bloomFilter.test(content) && this.filterManager.substringTrie.search(content)) {
+      if (this.filterManager.substringSearch.containsSpamSubstring(content)) {
         console.log(`Filtering post with ID: ${id}`);
         const spoiler = this.createSpoiler(content);
         const contentElement = postTable.querySelector(`table font a[href="#${id}"]`);
@@ -537,7 +584,7 @@ class ContentFilter {
     const posts = this.postParser.getPostElements();
     for (const post of posts) {
       const { author, postTable, id } = post;
-      if (this.filterManager && this.filterManager.authorBloomFilter && this.filterManager.authorBloomFilter.test(author) && this.filterManager.authorTrie.search(author)) {
+      if (this.filterManager.authorBloomFilter.test(author) && this.filterManager.authorTrie.search(author)) {
         console.log(`Filtering post with ID: ${id} by author: ${author}`);
         const spoiler = this.createSpoiler('This post is hidden due to the author filter.');
         const contentElement = postTable.querySelector(`table font a[href="#${id}"]`);
@@ -555,7 +602,6 @@ class ContentFilter {
     if (!this.filterManager) {
       return;
     }
-  
     const posts = this.postParser.getPostElements();
     const longPosts = posts.filter((post) => post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD);
     for (const post of longPosts) {
@@ -573,17 +619,19 @@ class ContentFilter {
         } else {
           console.warn(`Failed to replace content for post with ID: ${id}`);
         }
+        this.filterManager.collectAndCheckSignature(simHash);
       } else {
         this.filterManager.lruCache.put(simHash, true);
       }
     }
   }
 }
+
 const contentFilter = new ContentFilter();
 
 function testFilterPostsBySubstrings() {
   const testPosts = [
-    { content: 'This is a test post with modification, and he recently agreed to answer our questions.', postTable: {}, id: '123' },
+    { content : 'This is a test post with modification, and here recently agreed to answer our questions.', postTable: {}, id: '123' },
     { content: 'Another post without filtered substring.', postTable: {}, id: '456' },
     { content: 'This post contains legal efforts to overturn the 2020 election.', postTable: {}, id: '789' },
   ];

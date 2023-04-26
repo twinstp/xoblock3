@@ -1,6 +1,8 @@
+/* settings.css */
 body {
   background-color: #222;
   color: #eee;
+  padding: 10px;
 }
 
 label {
@@ -14,4 +16,6 @@ input, textarea {
   padding: 5px;
   background-color: #444;
   color: #eee;
+  border: none;
+  border-radius: 4px;
 }
