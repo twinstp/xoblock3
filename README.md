@@ -1,4 +1,3 @@
-README.md
 Overview
 The purpose of this program is to provide a content filtering solution for an online forum, specifically aimed at reducing spam and unwanted content. The filtering system comprises a browser extension that employs a combination of techniques such as substring matching, author-based filtering, and SimHash-based similarity detection to identify and filter out undesired posts.
 
