@@ -14,7 +14,7 @@
     "default_popup": "popup/popup.html"
   },
   "permissions": [
-    "tabs", "contextMenus", "scripting", "storage", "unlimitedStorage", "webNavigation"
+    "tabs", "contextMenus", "scripting", "storage", "unlimitedStorage", "webNavigation", "activeTab"
   ],
   "host_permissions": [
     "https://www.xoxohth.com/*", "https://xoxohth.com/*", "http://xoxohth.com/*",
