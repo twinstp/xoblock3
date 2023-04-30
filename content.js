@@ -1,4 +1,3 @@
-
 // ## DATA STRUCTURES ##
 function makeCharTable(str) {
 	const MAX_CHAR = 256;
@@ -22,7 +21,7 @@ function boyerMoore(text, pattern) {
 
 		i += Math.max(
 			offsetTable[pattern.length - 1 - j],
-			charTable[text.charCodeAt(i)],
+			charTable[text.charCodeAt(i)]
 		);
 	}
 
@@ -70,7 +69,7 @@ function suffixLength(pattern, p) {
 
 class XORFilter {
 	constructor(keys, seed = 123456789) {
-		console.log('Creating XORFilter...');
+		console.log("Creating XORFilter...");
 		this.fingerprintSize = 8;
 		this.hashes = 3;
 		this.seed = seed;
@@ -97,11 +96,11 @@ class XORFilter {
 	}
 
 	initialize(keys) {
-		console.log('Initializing XORFilter...');
+		console.log("Initializing XORFilter...");
 		const t2count = new Uint8Array(this.arrayLength);
 		const t2 = new Uint32Array(this.arrayLength);
-		keys.forEach(key => {
-			if (typeof key !== 'number') {
+		keys.forEach((key) => {
+			if (typeof key !== "number") {
 				console.warn(`Invalid key type: ${typeof key}. Key must be a number.`);
 				return;
 			}
@@ -180,7 +179,7 @@ class XORFilter {
 			this.fingerprints[change] = xor;
 		}
 
-		console.log('XORFilter initialized.');
+		console.log("XORFilter initialized.");
 	}
 
 	mayContain(key) {
@@ -196,7 +195,7 @@ class XORFilter {
 
 class BloomFilter {
 	constructor(size, numHashes) {
-		console.log('Creating BloomFilter...');
+		console.log("Creating BloomFilter...");
 		this.size = size;
 		this.numHashes = numHashes;
 		this.bits = new Uint8Array(Math.floor(size / 8));
@@ -205,8 +204,8 @@ class BloomFilter {
 
 	checkAndAdd(element) {
 		console.log(`BloomFilter checking and adding element: ${element}`);
-		if (!element || typeof element !== 'string') {
-			console.warn('Invalid element: Must be a non-empty string.');
+		if (!element || typeof element !== "string") {
+			console.warn("Invalid element: Must be a non-empty string.");
 			return false;
 		}
 
@@ -274,8 +273,8 @@ class ListNode {
 
 class LRUCache {
 	constructor(capacity) {
-		if (typeof capacity !== 'number' || capacity <= 0) {
-			throw new Error('Invalid capacity: Must be a positive number.');
+		if (typeof capacity !== "number" || capacity <= 0) {
+			throw new Error("Invalid capacity: Must be a positive number.");
 		}
 
 		this.capacity = capacity;
@@ -345,8 +344,8 @@ class TrieNode {
 	}
 
 	insert(word) {
-		if (!word || typeof word !== 'string') {
-			console.warn('Invalid word: Must be a non-empty string.');
+		if (!word || typeof word !== "string") {
+			console.warn("Invalid word: Must be a non-empty string.");
 			return;
 		}
 
@@ -363,8 +362,8 @@ class TrieNode {
 	}
 
 	search(word) {
-		if (!word || typeof word !== 'string') {
-			console.warn('Invalid word: Must be a non-empty string.');
+		if (!word || typeof word !== "string") {
+			console.warn("Invalid word: Must be a non-empty string.");
 			return false;
 		}
 
@@ -382,9 +381,9 @@ class TrieNode {
 }
 
 function utf8_encode(str) {
-	if (!str || typeof str !== 'string') {
-		console.warn('Invalid string: Must be a non-empty string.');
-		return '';
+	if (!str || typeof str !== "string") {
+		console.warn("Invalid string: Must be a non-empty string.");
+		return "";
 	}
 
 	return unescape(encodeURIComponent(str));
@@ -410,7 +409,7 @@ class SimHashUtil {
 			const C = function (f) {
 				let $;
 				let r;
-				let e = '';
+				let e = "";
 				for ($ = 7; $ >= 0; $--) {
 					e += (r = (f >>> (4 * $)) & 15).toString(16);
 				}
@@ -427,11 +426,11 @@ class SimHashUtil {
 			const D = (f = utf8_encode(f)).length;
 			const p = [];
 			for (r = 0; r < D - 3; r += 4) {
-				(e
-					= (f.charCodeAt(r) << 24)
-					| (f.charCodeAt(r + 1) << 16)
-					| (f.charCodeAt(r + 2) << 8)
-					| f.charCodeAt(r + 3)),
+				(e =
+					(f.charCodeAt(r) << 24) |
+					(f.charCodeAt(r + 1) << 16) |
+					(f.charCodeAt(r + 2) << 8) |
+					f.charCodeAt(r + 3)),
 					p.push(e);
 			}
 
@@ -446,11 +445,11 @@ class SimHashUtil {
 					r = (f.charCodeAt(D - 2) << 24) | (f.charCodeAt(D - 1) << 16) | 32768;
 					break;
 				case 3:
-					r
-						= (f.charCodeAt(D - 3) << 24)
-						| (f.charCodeAt(D - 2) << 16)
-						| (f.charCodeAt(D - 1) << 8)
-						| 128;
+					r =
+						(f.charCodeAt(D - 3) << 24) |
+						(f.charCodeAt(D - 2) << 16) |
+						(f.charCodeAt(D - 1) << 8) |
+						128;
 			}
 
 			for (p.push(r); p.length % 16 != 14;) {
@@ -471,9 +470,9 @@ class SimHashUtil {
 				}
 
 				for (r = 0, o = n, t = s, _ = u, x = d, a = i; r <= 19; r++) {
-					(h
-						= (c(o, 5) + ((t & _) | (~t & x)) + a + A[r] + 1518500249)
-						& 4294967295),
+					(h =
+						(c(o, 5) + ((t & _) | (~t & x)) + a + A[r] + 1518500249) &
+						4294967295),
 						(a = x),
 						(x = _),
 						(_ = c(t, 30)),
@@ -491,9 +490,9 @@ class SimHashUtil {
 				}
 
 				for (r = 40; r <= 59; r++) {
-					(h
-						= (c(o, 5) + ((t & _) | (t & x) | (_ & x)) + a + A[r] + 2400959708)
-						& 4294967295),
+					(h =
+						(c(o, 5) + ((t & _) | (t & x) | (_ & x)) + a + A[r] + 2400959708) &
+						4294967295),
 						(a = x),
 						(x = _),
 						(_ = c(t, 30)),
@@ -527,9 +526,9 @@ class SimHashUtil {
 	static async simhash(message) {
 		const hexDigest = this.createSHA1Hash(message);
 		const bitString = hexDigest
-			.split('')
-			.map(char => parseInt(char, 16).toString(2).padStart(4, '0'))
-			.join('');
+			.split("")
+			.map((char) => parseInt(char, 16).toString(2).padStart(4, "0"))
+			.join("");
 		const hash = [];
 		for (let i = 0; i < bitString.length; i += 8) {
 			hash.push(parseInt(bitString.substr(i, 8), 2));
@@ -550,13 +549,13 @@ class SimHashUtil {
 
 	static hammingDistance(hash1, hash2) {
 		if (hash1.length !== hash2.length) {
-			throw new Error('The lengths of hash1 and hash2 must be equal.');
+			throw new Error("The lengths of hash1 and hash2 must be equal.");
 		}
 
 		let distance = 0;
 		for (let i = 0; i < hash1.length; i++) {
-			const binary1 = hash1[i].toString(2).padStart(8, '0');
-			const binary2 = hash2[i].toString(2).padStart(8, '0');
+			const binary1 = hash1[i].toString(2).padStart(8, "0");
+			const binary2 = hash2[i].toString(2).padStart(8, "0");
 			for (let j = 0; j < binary1.length; j++) {
 				if (binary1[j] !== binary2[j]) {
 					distance++;
@@ -569,8 +568,8 @@ class SimHashUtil {
 }
 (async () => {
 	try {
-		const hash1 = await SimHashUtil.simhash('Hello, World!');
-		const hash2 = await SimHashUtil.simhash('Goodbye, World!');
+		const hash1 = await SimHashUtil.simhash("Hello, World!");
+		const hash2 = await SimHashUtil.simhash("Goodbye, World!");
 		const distance = SimHashUtil.hammingDistance(hash1, hash2);
 		console.log(distance);
 	} catch (err) {
@@ -591,11 +590,11 @@ class ConfigurationManager {
 		LONG_POST_THRESHOLD: 1000,
 		SIGNATURE_THRESHOLD: 100,
 		FILTERED_SUBSTRINGS: [
-			'modification, and he recently agreed to answer our questions',
-			'legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago',
-			'America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling',
-			'Go to the link, and look at that woman. Look at that face. She never expressed any remorse over',
-			'destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.',
+			"modification, and he recently agreed to answer our questions",
+			"legal efforts to overturn the 2020 election; and three offenses relating to Trump’s unlawful possession of government records at Mar-a-Lago",
+			"America is in the midst of the Cold War. The masculine fire and fury of World War II has given way to a period of cooling",
+			"Go to the link, and look at that woman. Look at that face. She never expressed any remorse over",
+			"destroyed the Ancien Regime in Europe, was an economic and scientific golden era, but politically it was a mess.",
 		],
 		USER_HIDDEN_AUTHORS: [],
 	};
@@ -605,9 +604,9 @@ class ConfigurationManager {
 	}
 
 	async loadConfig() {
-		console.log('Loading config...');
+		console.log("Loading config...");
 		return new Promise((resolve, reject) => {
-			chrome.storage.local.get('config', storedData => {
+			chrome.storage.local.get("config", (storedData) => {
 				if (chrome.runtime.lastError) {
 					console.error(chrome.runtime.lastError);
 					reject(chrome.runtime.lastError);
@@ -625,9 +624,9 @@ class ConfigurationManager {
 				config: newConfig,
 			},
 			() => {
-				console.log('Configuration updated:', newConfig);
-				alert('Configuration saved successfully.');
-			},
+				console.log("Configuration updated:", newConfig);
+				alert("Configuration saved successfully.");
+			}
 		);
 	}
 }
@@ -635,7 +634,7 @@ class ConfigurationManager {
 class PostParserError extends Error {
 	constructor(message) {
 		super(message);
-		this.name = 'PostParserError';
+		this.name = "PostParserError";
 	}
 }
 
@@ -645,22 +644,22 @@ class PostParser {
 	}
 
 	extractText(input) {
-		const regex
-			= /\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
-		return input.replace(regex, '').replace(/^\)/, '').trim();
+		const regex =
+			/\(http:\/\/www\.autoadmit\.com\/thread\.php\?thread_id=\d+&forum_id=\d+#\d+\)$/;
+		return input.replace(regex, "").replace(/^\)/, "").trim();
 	}
 
 	extractResponses(
 		parent,
 		parentResponseId = null,
 		visitedNodes = new Set(),
-		outline = [],
+		outline = []
 	) {
-		console.log('Extracting responses...');
+		console.log("Extracting responses...");
 		const responseEntries = [];
 
-		parent.querySelectorAll('a[href^="#"]').forEach(anchor => {
-			const responseId = anchor.getAttribute('href').slice(1);
+		parent.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+			const responseId = anchor.getAttribute("href").slice(1);
 			if (!visitedNodes.has(responseId)) {
 				visitedNodes.add(responseId);
 				const response = document.getElementById(responseId);
@@ -672,7 +671,7 @@ class PostParser {
 						id: responseId,
 						text: responseText,
 						// Added
-						author: response.querySelector('.post_author').innerText.trim(),
+						author: response.querySelector(".post_author").innerText.trim(),
 					});
 					outline.push(responseId);
 
@@ -680,7 +679,7 @@ class PostParser {
 						response,
 						responseId,
 						visitedNodes,
-						outline,
+						outline
 					);
 
 					if (nestedResponses.length > 0) {
@@ -694,24 +693,24 @@ class PostParser {
 	}
 
 	getPostElements() {
-		console.log('getPostElements: Start');
+		console.log("getPostElements: Start");
 		const postTables = document.querySelectorAll('table[width="700"]');
 		console.log(`getPostElements: Found ${postTables.length} post tables`);
 
 		const posts = Array.from(postTables).map((table, index) => {
 			console.log(`getPostElements: Processing post table ${index + 1}`);
-			const responseNameElement = table.querySelector('a[name]');
+			const responseNameElement = table.querySelector("a[name]");
 			const responseName = responseNameElement
 				? responseNameElement.name
 				: null;
 			console.log(
 				`getPostElements: Response name for post table ${index + 1
-				} is ${responseName}`,
+				} is ${responseName}`
 			);
-			if (responseName === 'Top') {
+			if (responseName === "Top") {
 				console.log(
 					`getPostElements: Skipping post table ${index + 1
-					} because response name is 'Top'`,
+					} because response name is 'Top'`
 				);
 				return null;
 			}
@@ -722,38 +721,38 @@ class PostParser {
 				const dateStr = fontText.match(/Date:\s*(.*?)\s*Author:/)[1];
 				console.log(
 					`getPostElements: Date string for post table ${index + 1
-					} is ${dateStr}`,
+					} is ${dateStr}`
 				);
 
 				const author = fontText.match(/Author:\s*(.*?)\s*\n/)[1];
 				console.log(
-					`getPostElements: Author for post table ${index + 1} is ${author}`,
+					`getPostElements: Author for post table ${index + 1} is ${author}`
 				);
 
-				let content = fontText.replace(/Date:.*Author:\s*/, '').trim();
+				let content = fontText.replace(/Date:.*Author:\s*/, "").trim();
 				const selfRefLinkMatch = content.match(
-					/\(http:\/\/www\.autoadmit\.com\/[^\)]+\)/,
+					/\(http:\/\/www\.autoadmit\.com\/[^\)]+\)/
 				);
 				const selfRefLink = selfRefLinkMatch
-					? selfRefLinkMatch[0].replace(/[\(\)]/g, '')
+					? selfRefLinkMatch[0].replace(/[\(\)]/g, "")
 					: null;
 				console.log(
 					`getPostElements: Self reference link for post table ${index + 1
-					} is ${selfRefLink}`,
+					} is ${selfRefLink}`
 				);
 
 				if (selfRefLink) {
-					content = content.replace(selfRefLink, '').trim();
+					content = content.replace(selfRefLink, "").trim();
 				}
 
 				content = content
-					.replace('Date:', '')
-					.replace(dateStr, '', 1)
-					.replace('Author:', '')
-					.replace(author, '', 1)
+					.replace("Date:", "")
+					.replace(dateStr, "", 1)
+					.replace("Author:", "")
+					.replace(author, "", 1)
 					.trim();
 				console.log(
-					`getPostElements: Content for post table ${index + 1} is '${content}'`,
+					`getPostElements: Content for post table ${index + 1} is '${content}'`
 				);
 
 				const parentLinkElement = table.querySelector('a[href^="#"]');
@@ -762,7 +761,7 @@ class PostParser {
 					: null;
 				console.log(
 					`getPostElements: Parent response name for post table ${index + 1
-					} is ${parentResponseName}`,
+					} is ${parentResponseName}`
 				);
 
 				return {
@@ -778,32 +777,32 @@ class PostParser {
 
 			console.log(
 				`getPostElements: Skipping post table ${index + 1
-				} because no font tag found`,
+				} because no font tag found`
 			);
 			return null;
 		});
 
-		const nonNullPosts = posts.filter(post => post !== null);
+		const nonNullPosts = posts.filter((post) => post !== null);
 		console.log(
-			`getPostElements: Returning ${nonNullPosts.length} non-null posts`,
+			`getPostElements: Returning ${nonNullPosts.length} non-null posts`
 		);
 		return nonNullPosts;
 	}
 
 	parsePost(postElement) {
-		console.log('Parsing post...');
+		console.log("Parsing post...");
 
-		const post = postElement.querySelector('.topic-post');
+		const post = postElement.querySelector(".topic-post");
 		if (!post) {
-			throw new PostParserError('Post element does not contain a .topic-post');
+			throw new PostParserError("Post element does not contain a .topic-post");
 		}
 
 		const postText = this.extractText(post.innerText);
 		if (this.isAllWhitespace(postText)) {
-			throw new PostParserError('Post text is all whitespace');
+			throw new PostParserError("Post text is all whitespace");
 		}
 
-		const postAuthor = post.querySelector('.post_author').innerText.trim();
+		const postAuthor = post.querySelector(".post_author").innerText.trim();
 		const postResponses = this.extractResponses(post);
 
 		return {
@@ -862,14 +861,17 @@ class FilterManager {
 		this.substringSearch = new SubstringSearch(config);
 		this.authorSearch = new AuthorSearch(config);
 		this.lruCache = new LRUCache(config.MAX_CACHE_SIZE);
-		this.bloomFilter = new BloomFilter(config.BLOOM_FILTER_SIZE, config.NUM_HASHES);
+		this.bloomFilter = new BloomFilter(
+			config.BLOOM_FILTER_SIZE,
+			config.NUM_HASHES
+		);
 		this.xorFilter = new XORFilter([]);
 		this.signatureThreshold = config.SIGNATURE_THRESHOLD || 100;
 		this.initializeFilters();
 	}
 
 	initializeFilters() {
-		console.log('Initializing filters...');
+		console.log("Initializing filters...");
 		this.substringSearch.initializeFilters();
 		this.authorSearch.initializeFilters();
 		this.xorFilter = new XORFilter([]);
@@ -886,7 +888,7 @@ class FilterManager {
 
 class ContentFilter {
 	constructor() {
-		console.log('Initializing ContentFilter...');
+		console.log("Initializing ContentFilter...");
 		this.configManager = new ConfigurationManager();
 		this.postParser = new PostParser();
 		this.filterManager = new FilterManager(this.configManager.config);
@@ -894,7 +896,7 @@ class ContentFilter {
 	}
 
 	filterPosts() {
-		console.log('Running filterPosts...');
+		console.log("Running filterPosts...");
 		const posts = this.postParser.getPostElements();
 		posts.forEach(({ content, postTable, id }) => {
 			if (this.filterManager.substringSearch.containsSpamSubstring(content)) {
@@ -905,16 +907,16 @@ class ContentFilter {
 	}
 
 	hidePost(postTable) {
-		console.log('Hiding post completely...');
+		console.log("Hiding post completely...");
 		if (postTable) {
-			postTable.style.display = 'none';
+			postTable.style.display = "none";
 		} else {
-			console.error('Cannot hide post: postTable is undefined');
+			console.error("Cannot hide post: postTable is undefined");
 		}
 	}
 
 	filterPostsByAuthor() {
-		console.log('Running filterPostsByAuthor...');
+		console.log("Running filterPostsByAuthor...");
 		const posts = this.postParser.getPostElements();
 		posts.forEach(({ author, postTable, id }) => {
 			if (this.filterManager.authorSearch.isSpamAuthor(author)) {
@@ -925,26 +927,27 @@ class ContentFilter {
 	}
 
 	async filterSpamPostsBySimHash() {
-		console.log('Running filterSpamPostsBySimHash...');
+		console.log("Running filterSpamPostsBySimHash...");
 		const posts = this.postParser.getPostElements();
 		const longPosts = posts.filter(
-			post =>
-				post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD,
+			(post) =>
+				post.content.length >= this.filterManager.config.LONG_POST_THRESHOLD
 		);
-		const simHashPromises = longPosts.map(post =>
-			SimHashUtil.simhash(post.content),
+		const simHashPromises = longPosts.map((post) =>
+			SimHashUtil.simhash(post.content)
 		);
 		const simHashes = await Promise.all(simHashPromises);
 		for (let i = 0; i < longPosts.length; i++) {
 			const post = longPosts[i];
 			const simHash = simHashes[i];
-			const isSpam = this.filterManager.lruCache
-				.getKeys()
-				.some(
-					cachedSimHash =>
-						SimHashUtil.hammingDistance(simHash, cachedSimHash)
-						<= this.filterManager.config.MAX_HAMMING_DISTANCE,
-				) || this.filterManager.xorFilter.mayContain(simHash);
+			const isSpam =
+				this.filterManager.lruCache
+					.getKeys()
+					.some(
+						(cachedSimHash) =>
+							SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
+							this.filterManager.config.MAX_HAMMING_DISTANCE
+					) || this.filterManager.xorFilter.mayContain(simHash);
 			if (isSpam) {
 				console.log(`Filtering spam post with ID: ${post.id}`);
 				this.hidePost(post.postTable);
@@ -957,16 +960,16 @@ class ContentFilter {
 
 	createSpoiler(content) {
 		console.log(`Creating spoiler for content: ${content}`);
-		const spoiler = document.createElement('div');
-		spoiler.textContent = 'This post has been hidden due to potential spam.';
-		spoiler.style.backgroundColor = '#ffcccc';
-		spoiler.style.border = '1px solid red';
-		spoiler.style.padding = '10px';
+		const spoiler = document.createElement("div");
+		spoiler.textContent = "This post has been hidden due to potential spam.";
+		spoiler.style.backgroundColor = "#ffcccc";
+		spoiler.style.border = "1px solid red";
+		spoiler.style.padding = "10px";
 		return spoiler;
 	}
 
 	handleErrors(error) {
-		console.error('Error:', error);
+		console.error("Error:", error);
 	}
 }
 
