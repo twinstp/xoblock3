@@ -693,76 +693,42 @@ class PostParser {
 	}
 
 	getPostElements() {
-		console.log("getPostElements: Start");
 		const postTables = document.querySelectorAll('table[width="700"]');
-		console.log(`getPostElements: Found ${postTables.length} post tables`);
+		let skippedPostTables = 0;
+		let processedPostTables = 0;
 
-		const posts = Array.from(postTables).map((table, index) => {
-			console.log(`getPostElements: Processing post table ${index + 1}`);
-			const responseNameElement = table.querySelector("a[name]");
-			const responseName = responseNameElement
-				? responseNameElement.name
-				: null;
-			console.log(
-				`getPostElements: Response name for post table ${index + 1
-				} is ${responseName}`
-			);
-			if (responseName === "Top") {
-				console.log(
-					`getPostElements: Skipping post table ${index + 1
-					} because response name is 'Top'`
-				);
+		const posts = Array.from(postTables).map((table) => {
+			const responseNameElement = table.querySelector('a[name]');
+			const responseName = responseNameElement ? responseNameElement.name : null;
+
+			if (responseName === 'Top') {
+				skippedPostTables++;
 				return null;
 			}
 
 			const fontTag = table.querySelector('font[face="Times New Roman"]');
 			if (fontTag) {
+				processedPostTables++;
 				const fontText = fontTag.innerText.trim();
 				const dateStr = fontText.match(/Date:\s*(.*?)\s*Author:/)[1];
-				console.log(
-					`getPostElements: Date string for post table ${index + 1
-					} is ${dateStr}`
-				);
-
 				const author = fontText.match(/Author:\s*(.*?)\s*\n/)[1];
-				console.log(
-					`getPostElements: Author for post table ${index + 1} is ${author}`
-				);
-
-				let content = fontText.replace(/Date:.*Author:\s*/, "").trim();
-				const selfRefLinkMatch = content.match(
-					/\(http:\/\/www\.autoadmit\.com\/[^\)]+\)/
-				);
-				const selfRefLink = selfRefLinkMatch
-					? selfRefLinkMatch[0].replace(/[\(\)]/g, "")
-					: null;
-				console.log(
-					`getPostElements: Self reference link for post table ${index + 1
-					} is ${selfRefLink}`
-				);
+				let content = fontText.replace(/Date:.*Author:\s*/, '').trim();
+				const selfRefLinkMatch = content.match(/\(http:\/\/www\.autoadmit\.com\/[^\)]+\)/);
+				const selfRefLink = selfRefLinkMatch ? selfRefLinkMatch[0].replace(/[\(\)]/g, '') : null;
 
 				if (selfRefLink) {
-					content = content.replace(selfRefLink, "").trim();
+					content = content.replace(selfRefLink, '').trim();
 				}
 
 				content = content
-					.replace("Date:", "")
-					.replace(dateStr, "", 1)
-					.replace("Author:", "")
-					.replace(author, "", 1)
+					.replace('Date:', '')
+					.replace(dateStr, '', 1)
+					.replace('Author:', '')
+					.replace(author, '', 1)
 					.trim();
-				console.log(
-					`getPostElements: Content for post table ${index + 1} is '${content}'`
-				);
 
 				const parentLinkElement = table.querySelector('a[href^="#"]');
-				const parentResponseName = parentLinkElement
-					? parentLinkElement.href.slice(1)
-					: null;
-				console.log(
-					`getPostElements: Parent response name for post table ${index + 1
-					} is ${parentResponseName}`
-				);
+				const parentResponseName = parentLinkElement ? parentLinkElement.href.slice(1) : null;
 
 				return {
 					date: dateStr,
@@ -775,17 +741,17 @@ class PostParser {
 				};
 			}
 
-			console.log(
-				`getPostElements: Skipping post table ${index + 1
-				} because no font tag found`
-			);
+			skippedPostTables++;
 			return null;
 		});
 
-		const nonNullPosts = posts.filter((post) => post !== null);
-		console.log(
-			`getPostElements: Returning ${nonNullPosts.length} non-null posts`
-		);
+		const nonNullPosts = posts.filter(post => post !== null);
+
+		console.log(`Found ${postTables.length} post tables in total.`);
+		console.log(`Processed ${processedPostTables} post tables.`);
+		console.log(`Skipped ${skippedPostTables} post tables.`);
+		console.log(`Returning ${nonNullPosts.length} non-null posts.`);
+
 		return nonNullPosts;
 	}
 
@@ -900,8 +866,10 @@ class ContentFilter {
 		const posts = this.postParser.getPostElements();
 		posts.forEach(({ content, postTable, id }) => {
 			if (this.filterManager.substringSearch.containsSpamSubstring(content)) {
-				console.log(`Filtering post with ID: ${id}`);
+				console.log(`Filtered post with ID: ${id} due to spam substring`);
 				this.hidePost(postTable);
+			} else {
+				console.log(`Post with ID: ${id} passed spam substring filter`);
 			}
 		});
 	}
@@ -920,8 +888,10 @@ class ContentFilter {
 		const posts = this.postParser.getPostElements();
 		posts.forEach(({ author, postTable, id }) => {
 			if (this.filterManager.authorSearch.isSpamAuthor(author)) {
-				console.log(`Filtering post with ID: ${id} by author: ${author}`);
+				console.log(`Filtered post with ID: ${id} by author: ${author}`);
 				this.hidePost(postTable);
+			} else {
+				console.log(`Post with ID: ${id} by author: ${author} passed author filter`);
 			}
 		});
 	}
@@ -940,32 +910,22 @@ class ContentFilter {
 		for (let i = 0; i < longPosts.length; i++) {
 			const post = longPosts[i];
 			const simHash = simHashes[i];
-			const isSpam =
-				this.filterManager.lruCache
-					.getKeys()
-					.some(
-						(cachedSimHash) =>
-							SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
-							this.filterManager.config.MAX_HAMMING_DISTANCE
-					) || this.filterManager.xorFilter.mayContain(simHash);
+			const isSpam = this.filterManager.lruCache
+				.getKeys()
+				.some(
+					(cachedSimHash) =>
+						SimHashUtil.hammingDistance(simHash, cachedSimHash) <=
+						this.filterManager.config.MAX_HAMMING_DISTANCE
+				);
 			if (isSpam) {
-				console.log(`Filtering spam post with ID: ${post.id}`);
+				console.log(`Filtered spam post with ID: ${post.id} due to similarity to previous post`);
 				this.hidePost(post.postTable);
 				this.filterManager.collectAndCheckSignature(simHash);
 			} else {
+				console.log(`Post with ID: ${post.id} passed similarity filter`);
 				this.filterManager.lruCache.put(simHash, true);
 			}
 		}
-	}
-
-	createSpoiler(content) {
-		console.log(`Creating spoiler for content: ${content}`);
-		const spoiler = document.createElement("div");
-		spoiler.textContent = "This post has been hidden due to potential spam.";
-		spoiler.style.backgroundColor = "#ffcccc";
-		spoiler.style.border = "1px solid red";
-		spoiler.style.padding = "10px";
-		return spoiler;
 	}
 
 	handleErrors(error) {
